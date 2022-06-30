@@ -1,32 +1,27 @@
 import { GetStaticPaths, GetStaticProps } from "next";
-import fs from "fs";
-import path from "path";
-import matter from "gray-matter";
 import { serialize } from "next-mdx-remote/serialize";
-import { MDXRemote, MDXRemoteSerializeResult } from "next-mdx-remote";
-import { IMetaData } from "../index";
+import { MDXRemote } from "next-mdx-remote";
+import { MDXPost, getPostBySlug, createPath } from "@apis/Posts";
 import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import "highlight.js/styles/base16/dracula.css";
 import rehypeHighlight from "rehype-highlight";
 import React from "react";
 
-interface MDXPost {
-	source: MDXRemoteSerializeResult<Record<string, unknown>>;
-	metaData: IMetaData;
-}
-
-const Paragraph = ({ children }: { children: React.ReactNode }) => {
-	return <p className="text-orange-500">{children}</p>;
+const Paragraph: React.FC<any> = (props) => {
+	return <p className="text-blue-400" {...props} />;
 };
 
-// const components: MDXComponent= { p: (props) => <Paragraph variant="p" {...props} /> }
+const components: import("mdx/types").MDXComponents = {
+	h1: (props) => <h1 className="text-orange-500" {...props} />,
+	p: (props) => <Paragraph {...props} />,
+};
 
 export default function PostPage({ post }: { post: MDXPost }) {
 	return (
 		<div>
 			<h1>{post.metaData.title}</h1>
-			<MDXRemote {...post.source} components={{ Paragraph }} />
+			<MDXRemote {...post.source} components={components} />
 		</div>
 	);
 }
@@ -34,11 +29,7 @@ export default function PostPage({ post }: { post: MDXPost }) {
 export const getStaticProps: GetStaticProps = async ({ params }) => {
 	const { slug } = params as { slug: string };
 
-	const data = fs.readFileSync(path.join("posts", `${slug}.mdx`), {
-		encoding: "utf-8",
-	});
-
-	const { content, data: metaData } = matter(data);
+	const { content, data: metaData } = getPostBySlug(slug);
 
 	const mdxSource = await serialize(content, {
 		mdxOptions: {
@@ -65,17 +56,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
 };
 
 export const getStaticPaths: GetStaticPaths = () => {
-	const files = fs.readdirSync(path.join("posts"));
-
-	const paths = files.map((fileName) => {
-		const slug = fileName.split(".mdx")[0];
-
-		return {
-			params: {
-				slug,
-			},
-		};
-	});
+	const paths = createPath();
 
 	return {
 		paths,

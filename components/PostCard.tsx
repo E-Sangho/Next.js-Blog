@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { IPost } from "../pages";
+import { IPost } from "@apis/Posts";
 
 export default function PostCard({ post }: { post: IPost }) {
 	return (
