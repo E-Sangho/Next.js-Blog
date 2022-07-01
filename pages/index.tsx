@@ -1,14 +1,17 @@
 import type { GetStaticProps } from "next";
 import PostCard from "@components/PostCard";
 import { getPosts, IPost } from "@apis/Posts";
+import Layout from "@components/Layout";
 
 const Home = ({ posts }: { posts: IPost[] }) => {
 	return (
-		<div>
-			{posts.map((post) => (
-				<PostCard key={post.slug} post={post} />
-			))}
-		</div>
+		<Layout title="Posts" hasTabBar={true}>
+			<div>
+				{posts.map((post) => (
+					<PostCard key={post.slug} post={post} />
+				))}
+			</div>
+		</Layout>
 	);
 };
 

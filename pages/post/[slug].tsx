@@ -7,22 +7,18 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import "highlight.js/styles/base16/dracula.css";
 import rehypeHighlight from "rehype-highlight";
 import React from "react";
-
-const Paragraph: React.FC<any> = (props) => {
-	return <p className="text-blue-400" {...props} />;
-};
-
-const components: import("mdx/types").MDXComponents = {
-	h1: (props) => <h1 className="text-orange-500" {...props} />,
-	p: (props) => <Paragraph {...props} />,
-};
+import Layout from "@components/Layout";
+import Components from "@components/PostComponents";
 
 export default function PostPage({ post }: { post: MDXPost }) {
+	const components = Components;
 	return (
-		<div>
+		<Layout title={post.metaData.title} canGoBack={true}>
 			<h1>{post.metaData.title}</h1>
-			<MDXRemote {...post.source} components={components} />
-		</div>
+			<div className="prose">
+				<MDXRemote {...post.source} components={components} />
+			</div>
+		</Layout>
 	);
 }
 
