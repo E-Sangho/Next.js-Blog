@@ -6,7 +6,7 @@ import Layout from "@components/Layout";
 const Home = ({ posts }: { posts: IPost[] }) => {
 	return (
 		<Layout title="Posts" hasTabBar={true}>
-			<div>
+			<div className="mx-4">
 				{posts.map((post) => (
 					<PostCard key={post.slug} post={post} />
 				))}

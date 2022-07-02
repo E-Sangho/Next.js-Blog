@@ -18,7 +18,7 @@ export default function Layout({
 	return (
 		<div className="container">
 			<Header title={title} canGoBack={canGoBack} />
-			<div className={ChainName("pt-16", hasTabBar ? "pb-20" : "", "mx-4")}>
+			<div className={ChainName("pt-16", hasTabBar ? "pb-20" : "")}>
 				{children}
 			</div>
 			{hasTabBar ? <TabBar /> : null}

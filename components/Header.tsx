@@ -12,7 +12,7 @@ export default function Header({ title, canGoBack }: IHeader) {
 	};
 
 	return (
-		<div className="w-full px-4 py-4 border-b-2 flex fixed top-0 left-0 bg-white">
+		<div className="w-full px-4 py-4 border-b-2 flex fixed top-0 left-0 bg-white z-50">
 			{canGoBack ? (
 				<button className="fixed top-4 left-4" onClick={onClick}>
 					<svg

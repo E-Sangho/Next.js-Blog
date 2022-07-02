@@ -9,13 +9,14 @@ import rehypeHighlight from "rehype-highlight";
 import React from "react";
 import Layout from "@components/Layout";
 import Components from "@components/PostComponents";
+import PostHero from "@components/PostHero";
 
 export default function PostPage({ post }: { post: MDXPost }) {
 	const components = Components;
 	return (
 		<Layout title={post.metaData.title} canGoBack={true}>
-			<h1>{post.metaData.title}</h1>
-			<div className="prose">
+			<PostHero metaData={post.metaData} />
+			<div className="mx-4">
 				<MDXRemote {...post.source} components={components} />
 			</div>
 		</Layout>
