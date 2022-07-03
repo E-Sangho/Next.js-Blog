@@ -3,32 +3,43 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import Link from "next/link";
+import Layout from "@components/Layout";
+import { IMetaData } from "@apis/Posts";
+import SeriesCard from "@components/SeriesCard";
 
-export default function SeriesPage({ series }: { series: string[] }) {
+interface ISeriesPage {
+	series: IMetaData[];
+}
+
+export default function SeriesPage({ series }: ISeriesPage) {
 	return (
-		<ul>
-			{series.map((seriesName) => (
-				<Link href={`/series/${seriesName}`}>
-					<a key={seriesName}>{seriesName}</a>
-				</Link>
-			))}
-		</ul>
+		<Layout title="Series" hasTabBar={true}>
+			<div className="mx-4">
+				{series.map((metaData) => (
+					<SeriesCard key={metaData.series} metaData={metaData} />
+				))}
+			</div>
+		</Layout>
 	);
 }
+
 export const getStaticProps: GetStaticProps = () => {
 	const files = fs.readdirSync(path.join("posts"));
 
-	const series = Array.from(
-		new Set(
-			files.map((fileName) => {
-				const data = fs.readFileSync(path.join("posts", fileName));
+	let seriesSet = new Set();
 
-				const { data: metaData } = matter(data);
+	const series = files
+		.map((fileName) => {
+			const data = fs.readFileSync(path.join("posts", fileName));
 
-				return metaData.series;
-			})
-		)
-	);
+			const { data: metaData } = matter(data);
+
+			if (metaData?.series && !seriesSet.has(metaData.series)) {
+				seriesSet.add(metaData.series);
+				return metaData;
+			}
+		})
+		.filter((e) => e);
 
 	return {
 		props: {

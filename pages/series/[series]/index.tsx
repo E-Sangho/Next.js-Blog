@@ -2,17 +2,24 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { GetStaticPaths, GetStaticProps } from "next";
-import Link from "next/link";
+import Layout from "@components/Layout";
+import SeriesList from "@components/SeriesList";
+import { IMetaData } from "@apis/Posts";
 
-export default function SeriesPage({ list }: { list: string[] }) {
+export default function SeriesPage({
+	metaDataWithTitle,
+}: {
+	metaDataWithTitle: {
+		fileName: string;
+		metaData: IMetaData;
+	}[];
+}) {
 	return (
-		<div>
-			{list.map((name) => (
-				<Link href={`/post/${name}`}>
-					<a>{name}</a>
-				</Link>
-			))}
-		</div>
+		<Layout title="Seires List" canGoBack={true} hasTabBar={true}>
+			<div className="mx-4">
+				<SeriesList metaDataWithTitle={metaDataWithTitle} />
+			</div>
+		</Layout>
 	);
 }
 export const getStaticProps: GetStaticProps = ({ params }) => {
@@ -20,7 +27,7 @@ export const getStaticProps: GetStaticProps = ({ params }) => {
 
 	const files = fs.readdirSync(path.join("posts"));
 
-	const list = files
+	const metaDataWithTitle = files
 		.map((fileName) => {
 			const data = fs.readFileSync(path.join("posts", fileName), {
 				encoding: "utf-8",
@@ -29,16 +36,17 @@ export const getStaticProps: GetStaticProps = ({ params }) => {
 			const { data: metaData } = matter(data);
 
 			if (metaData.series === series) {
-				return fileName.split(".mdx")[0];
+				return {
+					fileName: fileName.split(".mdx")[0],
+					metaData,
+				};
 			}
-
-			return "";
 		})
-		.filter((name) => name !== "");
+		.filter((e) => e);
 
 	return {
 		props: {
-			list,
+			metaDataWithTitle,
 		},
 	};
 };

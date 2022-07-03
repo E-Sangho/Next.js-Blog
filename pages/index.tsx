@@ -1,30 +1,11 @@
-import type { GetStaticProps } from "next";
-import PostCard from "@components/PostCard";
-import { getPosts, IPost } from "@apis/Posts";
 import Layout from "@components/Layout";
 
-const Home = ({ posts }: { posts: IPost[] }) => {
+const HomePage = () => {
 	return (
-		<Layout title="Posts" hasTabBar={true}>
-			<div className="mx-4">
-				{posts.map((post) => (
-					<PostCard key={post.slug} post={post} />
-				))}
-			</div>
+		<Layout title="Home" hasTabBar={true}>
+			<div>Home</div>
 		</Layout>
 	);
 };
 
-export default Home;
-
-export const getStaticProps: GetStaticProps = () => {
-	const posts = getPosts();
-
-	return {
-		props: {
-			posts: posts.sort((a, b) => {
-				return b.metaData.date - a.metaData.date;
-			}),
-		},
-	};
-};
+export default HomePage;
