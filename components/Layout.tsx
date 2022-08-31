@@ -18,7 +18,12 @@ export default function Layout({
 	return (
 		<div className="container">
 			<Header title={title} canGoBack={canGoBack} />
-			<div className={ChainName("pt-16", hasTabBar ? "pb-20" : "")}>
+			<div
+				className={ChainName(
+					"pt-16 bg-zinc-900 min-h-screen",
+					hasTabBar ? "pb-20" : ""
+				)}
+			>
 				{children}
 			</div>
 			{hasTabBar ? <TabBar /> : null}

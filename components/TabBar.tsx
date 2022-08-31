@@ -1,13 +1,22 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { ChainName } from "../utils";
 
 export default function TabBar() {
+	const router = useRouter();
+	const currentRoute = router.pathname;
+
 	return (
-		<div className="fixed bg-white left-0 bottom-0 w-full px-4 py-4 border-t-2 border-gray-100">
+		<div className="fixed bg-slate-900 left-0 bottom-0 w-full px-4 py-4">
 			<div className="flex justify-between text-gray-500">
 				<Link href="/">
 					<a>
-						<div className="flex flex-col items-center">
+						<div
+							className={ChainName(
+								"flex flex-col items-center",
+								currentRoute === "/" ? "text-indigo-600" : ""
+							)}
+						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								className="h-6 w-6"
@@ -28,7 +37,12 @@ export default function TabBar() {
 				</Link>
 				<Link href="/post">
 					<a>
-						<div className="flex flex-col items-center">
+						<div
+							className={ChainName(
+								"flex flex-col items-center",
+								currentRoute === "/post" ? "text-indigo-600" : ""
+							)}
+						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								className="h-6 w-6"
@@ -49,7 +63,12 @@ export default function TabBar() {
 				</Link>
 				<Link href="/series">
 					<a>
-						<div className="flex flex-col items-center">
+						<div
+							className={ChainName(
+								"flex flex-col items-center",
+								currentRoute === "/series" ? "text-indigo-600" : ""
+							)}
+						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								className="h-6 w-6"
