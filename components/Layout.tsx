@@ -20,7 +20,7 @@ export default function Layout({
 			<Header title={title} canGoBack={canGoBack} />
 			<div
 				className={ChainName(
-					"pt-16 bg-zinc-900 min-h-screen",
+					"pt-16 bg-slate-900 min-h-screen",
 					hasTabBar ? "pb-20" : ""
 				)}
 			>
