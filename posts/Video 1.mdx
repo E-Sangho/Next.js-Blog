@@ -1,0 +1,155 @@
+---
+title: Video
+date: 2022-09-14 20:03:36
+series: Video
+excerpt: ""
+cover_image: /images/posts/img1.jpeg
+tag: [React, Express, JavaScript]
+draft: false
+---
+
+`npx create-react-app --template typescript`
+
+`npm i express`
+
+`npm i --save-dev @types/express @types/node ts-node typescript nodemon`
+
+타입스크립트로 코드를 작성하면
+
+1. typescript => JavaScript로 변환(tsc test.ts)
+2. 컴파일된 자바스크립트 파일 실행(node test.js)
+
+위 단계로 실행해야 하는데, 매 번 컴파일을 하고 실행하려면 번거롭다.
+그러므로 ts-node를 사용해서 nodemon이 이를 자동으로 처리하도록 한다.
+
+`nodemon --watch "src/**" --ext "ts,json" --ignore "src/**/*.spec.ts" --exec "ts-node src/index.ts"`
+
+`nodemon --watch src --exec node --loader ts-node/esm src/server.ts`
+
+nodemon --watch: 체크할 파일 위치
+
+server.ts 파일에서 ES6를 사용하기 위해서 package.json에 `"type": "module"`을 추가
+
+```JavaScript
+// package.json
+{
+	"name": "youtube",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+  ...
+  "scripts": {
+    ...
+		"server": "nodemon --watch src --exec node --loader ts-node/esm src/server.ts"
+	},
+  ...
+}
+```
+
+```JavaScript
+// servesr.ts
+import express from "express";
+
+const app = express();
+
+const handleListening = () => console.log("Server listening on port 4000");
+
+app.listen(4000, handleListening);  // React가 3000을 포트로 사용하므로 3000을 제외한 다른 포트 사용
+
+```
+
+콜백함수의 req, res, next에 사용되는 타입은 Request, Response, NextFunction으로 아래처럼 사용하면 된다.
+
+```JavaScript
+import express, { Request, Response, NextFunction } from 'express';
+
+const app = express();
+
+
+app.get("/", (req: Request, res: Response, next: NextFunction) => {
+    res.send("Setver started");
+});
+```
+
+리액트와 서버 사이에 데이터를 주고 받는 일을 해보겠다.
+우선 리액트에서 서버로 데이터를 보내는 법을 알아보자.
+간단하게 아래처럼 form을 만들고 submit이 일어나면 id를 보내줬다.
+
+```JavaScript
+// register.tsx
+import { useState } from "react";
+
+function Register() {
+	const [id, setId] = useState("");
+
+	const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		setId(event.currentTarget.value);
+	};
+
+	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+		event.preventDefault();
+		const data = {
+			id: id,
+		};
+
+		await fetch("http://localhost:4000/register", {
+			method: "post",
+			headers: {
+				"content-type": "application/json",
+			},
+			body: JSON.stringify(data),
+		});
+	};
+
+	return (
+		<>
+				<form onSubmit={handleSubmit}>
+					<input type="text" placeholder="id" onChange={handleChange} />
+					<button>Submit</button>
+				</form>
+				<div>{id}</div>
+		</>
+	);
+}
+
+export default Register;
+```
+
+이제 http://localhost:4000/register에서 post된 내용을 받아오는 코드를 server에 작성한다.
+간단하게 받은 내용을 콘솔에 출력하는 코드를 작성했다.
+
+```JavaScript
+import express, { Request, Response, NextFunction } from "express";
+
+const PORT = 4000;
+
+const app = express();
+
+const handleListening = () => console.log("Server listening on port 4000");
+
+const handleRegister = (req: Request, res: Response, next: NextFunction) => {
+	const id = req.body.id;
+	console.log(id);
+	res.end();
+};
+
+app.get("/", handleHome);
+app.get("/login", handleLogin);
+app.post("/register", handleRegister);
+
+app.listen(PORT, handleListening);
+```
+
+여기까지 하면 내 상상으로는 콘솔에 id가 출력되거나, 최소한 에러가 발생해야 한다.
+그런데 아무런 동작을 하지 않아서 무슨 문제가 있는지 알 수가 없었다.
+인터넷 검색을 해보니 cors와 body-parser라는 것이 필요하다는 것을 알게 되었다.
+
+잠시 cors가 왜 필요한지를 설명하겠다.
+웹은 다른 ip로 리소스 요청을 제한하는 2가지 정책이 있다.
+하나는 cors고 다른 하나는 sop(same origin policy)다.
+sop은 2011년에 제안된 보안 정책으로 "같은 출처에서만 리소스를 공유할 수 있다"는 규칙이다.
+그렇지만 웹은 서로 다른 주소에서 데이터를 받아오는 일이 흔하기에, 몇 가지 예외를 두기로 했다.
+이 예외 중의 하나가 cors를 지킨 리소스 요청이다.
+
+앞서 우리는 localhost:3000에서 localhost:4000으로 데이터를 보냈다.
+이는 sop 정책을 위반한 것이므로 해당 데이터를 사용할 수 없게 된다.

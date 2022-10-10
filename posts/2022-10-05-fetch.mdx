@@ -1,0 +1,65 @@
+---
+title: fetch
+date: 2022-10-05 14:03:42
+excerpt: "This is excerpt of the scries"
+cover_image: /images/posts/img1.jpeg
+tag: [JavaScript]
+draft: true
+---
+
+```Javascript
+let promise = fetch(url, [options]);
+```
+
+- url
+- options: 매개변수, method, header 등을 지정 가능
+
+```JavaScript
+(async () => {
+  let response = await fetch(url);
+
+  if (response.ok) {
+    let json = await response.json();
+  } else {
+    alsert("HTTP-Error: " + response.status);
+  }
+})();
+```
+
+## options
+
+fetch의 옵션으로 headers에 추가적인 정보를 보낼 수 있다.
+
+```JavaScript
+let response = fetch(protectedUrl, {
+  headers: {
+    Authentication: "secret"
+  }
+})
+```
+
+그 외에도 method를 설정하거나, body에 정보를 담아 보낼 수 있다.
+
+```JavaScript
+(async () => {
+  let user = {
+    name: "John",
+    surname: "Smith"
+  };
+
+  let response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(user);
+  });
+
+  let result = await response.json();
+  alert(result.message);
+})();
+```
+
+# Reference
+
+1. [Javascript.info](https://ko.javascript.info/fetch)

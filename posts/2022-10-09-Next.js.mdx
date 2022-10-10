@@ -1,0 +1,153 @@
+---
+title: Next.js
+date: 2022-10-09 21:06:43
+category: Next.js
+tag: [Next.js]
+series: Next.js
+excerpt: "This is Next.js"
+cover_image: /images/posts/next.png
+draft: true
+---
+
+# Next.js
+
+statically pre-render some pages
+server-side rendering
+
+- page-based routing system
+- pre-rendering SSG and SSR
+- code splitting
+- Client-side routing
+- API rout
+
+파일 변화 시에 즉각적으로 반응하므로 별도로 새로고침해줄 필요가 없다.
+
+## Install
+
+`npx create-next-app@latest --typescript`
+
+`npm run dev` => http://localhost:3000
+
+`npm install next react react-dom`
+
+- pages: 파일명으로 라우트를 만든다.
+- public: 정적 파일을 저장하는 곳
+
+## Page
+
+next.js에서 페이지는 pages 폴더 안에서 파일명으로 만든다.
+예를 들어서 _/_ 페이지는 _pages/index.js_ 파일로 만들고, _/posts_ 페이지는 */pages/posts/index.js*나 _/pages/posts.js_ 파일로 만든다.
+이때 페이지의 정보는 index.js에서 export하는 리액트 컴포넌트로 만든다.
+아래처럼 /posts/index.js 파일을 만든 다음 /posts 페이지를 확인해보자.
+
+```javascript
+// /posts/index.js
+export default function FirstPost() {
+	return <h1>First Post</h1>;
+}
+```
+
+컴포넌트를 export 할때 중요한 점은 export *default*로 내보내는 내용만 반영한다는 것이다.
+이제 서버를 실행시킨 후 *http://localhost:3000/posts/first-post*를 확인해보면 위 페이지가 만들어진다.
+
+## Link
+
+웹 사이트에서 페이지 이동시에 \<a> 태그를 사용한다.
+Next.js에서는 Link 컴포넌트를 사용해서 페이지를 이동한다.
+
+페이지 이동에는 \<Link>를 사용하는데, props를 전달할 수 있다.
+
+```javascript
+import Link from "next/link";
+
+<h1 className="title">
+	Read <Link href="/posts/first-post">this page!</Link>
+</h1>;
+```
+
+/<Link> 태그는 \<a> 태그와 비슷한 일을 한다.
+12.2 버전 이전이는 \<Link>를 \<a>로 감싸야 했었는데, 12.2 버전부터는 \<Link> 태그만 사용해도 된다.
+\<Link>와 \<a>의 차이점은 페이지 랜더링 방법이다.
+\<Link>는 client-side navigation을 사용한다.
+간단히 말해 자바스크립트로 페이지 이동을 구현한다.
+그렇기 때문에 주소가 바뀌면서 페이지를 요청하는 방식이 아니라, 자바스크립트로 페이지를 새로 랜더링한다.
+이를 확인해보려면 \<html>의 background 색을 바꾼 다음, \<Link>를 눌러보자.
+그러면 바뀐 페이지에서도 색이 그대로 반영되는 것을 볼 수 있다.
+만약 주소창을 통해 페이지 이동을 하면 새로운 페이지를 불러오므로 바뀐 색이 유지되지 않는다.
+
+## Code Splitting and prefetching
+
+Next.js는 코드를 나눠서 각 페이지에서 필요한 코드만 불러온다.
+예를 들어 홈페이지를 랜더링 한다면 다른 페이지를 위한 코드 없이 불러온다.
+이로 인해 빠른 랜더링이 가능하고, 특정 페이지에 에러가 있더라도 다른 부분은 정상적으로 작동한다.
+하지만 완전히 코드를 불러오지 않는다면 위의 \<Link>를 사용했을 때, 다른 페이지를 만드는 코드가 없어서 정상적으로 작동하지 않을 것이다.
+그래서 Next.js는 \<Link> 태그를 만나면 해당 코드를 미리 불러온다.
+이로 인해 \<Link> 태그를 누르면 목표 페이지의 코드가 작동해서 페이지를 변경시켜준다.
+요약하자면 Next.js는 빠르게 첫 페이지를 불러오기 위해 필요한 코드만 불러온다.
+그리고 \<Link>에 연결된 페이지를 순차적으로 불러와서 페이지 이동을 빠르게 가능하게 한다.
+
+> 만약 외부 페이지로 이동하는 링크를 만들려면 코드를 미리 불러올 수 없다. 그러므로 \<a>를 사용해야 한다.
+> 또한 \<Link>에 props를 추가하고 싶다면 아래처럼 \<a> 태그에 적어줘야 한다.
+
+```javascript
+export default function LinkClassnameExample() {
+	// To add attributes like className, target, rel, etc.
+	// add them to the <a> tag, not to the <Link> tag.
+	return (
+		<Link href="/">
+			<a className="foo" target="_blank" rel="noopener noreferrer">
+				Hello World
+			</a>
+		</Link>
+	);
+}
+```
+
+## Assets
+
+Next.js는 이미지 같은 정적 파일(static assets)을 사용할 수 있다.
+정적 파일 사용하려면 public 폴더에 넣어주면 된다.
+public 폴더 내의 파일은 root directory로 찾을 수 있다.
+예를 들어서 public 폴더에 a.png라는 이미지가 있을 때, 이를 불러오려면 아래처럼 하면 된다.
+
+```javascript
+import Image from "next/image";
+
+function CharaImage() {
+	return <Image src="/a.png" alt="charaimage" width="64" height="64" />;
+}
+
+export default CharaImage;
+```
+
+### Image
+
+Next.js에서 이미지를 사용하려면 \<Image>를 사용한다.
+\<Image>와 \<img>의 차이점은 최적화의 차이다.
+\<Image>는 \<Link>로 이어진 페이지의 이미지를 미리 불러온다.
+그리고 이미지를 보이는 부분만 랜더링 하기 때문에 불필요한 낭비를 줄인다.
+\<img>는 이미지 크기가 1920x1280 사이즈라면, 화면에서 400x400만 사용하더라도 저 크기의 파일이 필요하다.
+하지만 Next.js는 화면에 필요한 크기만 불러온다.
+
+Next.js는 빌드 타임에 이미지를 최적화 하는 것이 아니라 요청시에 최적화한다.
+보통 정적 페이지를 만들면 빌드 타임에 이미지를 불러와야 한다.
+이로 인해 이미지가 10개에서 1만개로 늘리면 빌드 타임이 늘어나게 된다.
+Nest.js는 빌드 타임에 최적화 하지 않으므로 이미지가 아무리 많아져도 빌드 타임이 늘어나지 않는다.
+
+\<Image>는 lazy loading을 사용한다.
+lazy loading이란 이미지를 로딩을 필요할 때까지 지연하는 기술이다.
+예를 들어서 페이지 밖의 이미지는 현재 로딩될 필요가 없으므로, 당장 필요한 이미지를 먼저 랜더링해준다.
+이로 인해 사용자가 필요한 이미지를 먼저 볼 수 있어서 사용감이 좋아진다.
+본래 lazy loading을 구현하려면 scroll 이벤트로 이미지가 화면에 보일 때 불러오도록 구현해야 한다.
+다행히도 최근 크롬은 img 태그에 loading="lazy"를 추가하는 것만으로 간단하게 만들 수 있다.
+
+웹 사이트에서 이미지가 로딩되기 전에는 높이가 0이다가, 이미지가 로딩되면 높이가 생긴다.
+이로 인해 화면 페이지가 밀려나는 경험을 해봤을 텐데, 이를 CLS(Cumulative Layout Shift)라고 한다.
+Next.js는 이미지가 랜더링되기 전에 미리 높이를 할당해놓는다.
+그래서 CLS가 발생하지 않는데, 미리 보여주는 이미지로 blur 이미지를 사용하는 등 다양한 지정이 가능하다.
+
+### Metadata
+
+# Reference
+
+2.[Kakao 엔터 FE 기술 블로그](https://fe-developers.kakaoent.com/2022/220714-next-image/)
