@@ -146,7 +146,267 @@ lazy loading이란 이미지를 로딩을 필요할 때까지 지연하는 기�
 Next.js는 이미지가 랜더링되기 전에 미리 높이를 할당해놓는다.
 그래서 CLS가 발생하지 않는데, 미리 보여주는 이미지로 blur 이미지를 사용하는 등 다양한 지정이 가능하다.
 
-### Metadata
+## Metadata
+
+### Head
+
+페이지의 메타 데이터를 바꾸고 싶으면 \<head> 태그를 수정해야 한다.
+이는 \<Head>를 사용하면 가능한데, 아래처럼 가능하다.
+
+```javascript
+<Head>
+	<title>Create Next App</title>
+	<link rel="icon" href="/favicon.ico" />
+</Head>
+```
+
+\<Head>는 *next/head*에서 import 할 수 있다.
+
+### Script
+
+\<head>에 \<script>를 추가해야 하는 경우가 있다.
+이는 \<Head>에 추가하면 그대로 동작한다.
+그렇지만 \<script>가 동작하는 순서를 보장하지 않으므로, 코드가 불러와지질 않아서 페이지가 랜더링 되지 않는 경우가 발생한다.
+
+이때 사용하는 것이 *next/script*의 \<Script>다.
+
+```javascript
+import Script from "next/script";
+
+export default function FirstPost() {
+	return (
+		<>
+			<Head>
+				<title>First Post</title>
+			</Head>
+			<Script
+				src="https://connect.facebook.net/en_US/sdk.js"
+				strategy="lazyOnload"
+				onLoad={() =>
+					console.log(`script loaded correctly, window.FB has been populated`)
+				}
+			/>
+			<h1>First Post</h1>
+			<h2>
+				<Link href="/">
+					<a>Back to home</a>
+				</Link>
+			</h2>
+		</>
+	);
+}
+```
+
+- strategy: 스크립트가 어떻게 동작할지 정한다. lazyOnload는 브라우저에서 불러오도록 한다.
+- onLoad: 자바스크립트 코드를 불러오는 즉시 실행하도록 한다.
+
+## Document
+
+Document는 서버에서 만드는 페이지의 \<html>과 \<body>를 수정한다.
+그래서 페이지를 랜더링하기 전에 미리 커스텀 페이지를 만들게 해준다.
+이때 서버에서 만들기 때문에 onClick 같은 이벤트는 추가할 수 없다.
+Document를 적용하려면 _pages/\_document.js_ 파일에 아래처럼 적어준다.
+
+```javascript
+// pages/_document.js
+import { Html, Head, Main, NextScript } from "next/document";
+
+export default function Document() {
+	return (
+		<Html>
+			<Head />
+			<body>
+				<Main />
+				<NextScript />
+			</body>
+		</Html>
+	);
+}
+```
+
+여기서 \<Head>는 *next/head*의 \<Head>와는 다르다.
+*next/document*의 \<Head>는 모든 페이지에 적용되므로 일괄적으로 적용되는 내용에만 사용해야 한다.
+\<Main> 태그를 제외하고는 브라우저에서 실행되지 않으므로, 여기에 자바스크립트 코드를 추가해서는 안 된다.
+예를 들어 자바스크립트 CSS 코드를 추가한다면 작동하지 않는다.
+
+## App
+
+모든 페이지에 적용되는 _pages/\_app.js_
+
+global CSS 적용 가능
+
+## Pre-rendering
+
+Next.js는 모든 페이지를 프리 랜더링한다.
+클라이언트에서 자바스크립트만으로 페이지를 랜더링 하는 것이 아니라, 미리 HTML을 만들어둔다.
+프리 랜더링을 함으로써 더 빠르게 페이지를 불러올 수 있고, SEO에도 도움이 된다.
+
+Nest.js 페이지를 처음 불러오면 자바스크립트가 적용되지 않는다.
+그리고 자바스크립트 코드가 실행되면서 기능이 적용되는데, 이를 hydration이라고 한다.
+브라우저에서 자바스크립트 실행을 멈추고 페이지를 랜더링해보면 hydration 이전의 페이지를 볼 수 있다.
+확인하고 싶으면 크롬 [개발자 도구(우클릭 검사)] -> [설정] -> [디버거]에서 *자바스크립트 사용 중지*로 가능하다.
+
+Next.js는 2가지 프리 랜더링 방법이 있다.
+둘의 차이점은 언제 HTML 페이지를 만드는지다.
+
+- Static Generation: 빌드 타임에 HTML을 만든다. 그러므로 HTML을 한 번만 만든다.
+- Server-side Rendering: 페이지 요청시에 HTML을 만든다. 요청시마다 만들어야 하므로 HTML을 여러 번 만든다.
+
+Next.js는 각 페이지마다 프리 랜더링 방법을 정한다.
+그러므로 어떤 페이지는 Static Generation을 적용하고, 다른 페이지는 SSR을 적용할 수 있다.
+
+### Static Generation vs Server-side Rendering
+
+페이지 변화가 적을 경우 SSG(Static Site Generation)이 유리하다.
+왜냐하면 빌드 타임에만 1번만 랜더링하면 되고 CDN(Content Districution Network) 입장에서도 부하가 적기 때문이다.
+그렇지만 사용자 요청이 반영되어야 하는 경우 SSG를 적용하긴 어렵다.
+사용자 요청에 따라 페이지가 달라져야 하기 때문이다.
+그러므로 이때는 SSR을 사용해야 한다.
+
+### SSG
+
+SSG는 사용자의 요청이 없을 경우 사용한다고 했다.
+그러므로 페이지가 만들어진 이후에는 데이터 통신을 하지 않는다.
+하지만 페이지가 만들어지는 시점에 데이터가 필요할 수 있다.
+빌드 타임에 외부 API를 사용해야 할 수도 있고, 이미지 파일을 포함시켜야 하는 경우도 있을 것이다.
+Next.js는 이를 getStaticProps로 해결한다.
+
+getStaticProps는 각 페이지 컴포넌트와 같이 사용한다.
+async 함수로 export하면 빌드 타임에 해당 함수를 실행하고, 그 결과값을 props에 담아서 페이지 컴포넌트에 전달해준다.
+
+```javascript
+export async function getStaticProps() {
+  // 빌드 타임에 getStaticProps가 호출된다.
+  const data = ...
+
+  // 내부적으로 통신이나 파일을 불러오는 일을 한다.
+  return {
+    props: ...  // props에 결과값을 담아서 내보내면 이는 페이지 컴포넌트에 전달된다.
+  }
+}
+
+// 위 getStaticProps가 props에 담은 내용이 Home에 전달되서 사용 가능하다.
+export default function Home(props) { ... }
+```
+
+### Server-side Rendering
+
+SSR은 getServerSideProps를 사용한다.
+방법은 getStaticProps와 비슷한데, 클라이언트의 요청시에 동작한다는 차이점만 있다.
+
+```javascript
+export async function getServerSideProps(context) {
+	return {
+		props: {
+			// props for your component
+		},
+	};
+}
+```
+
+getServerSideProps의 변수 context는 요청 데이터를 담고 있다.
+SSR은 SSG에 비해 굉장히 느리기 때문에 요청시의 데이터가 필요한 경우에만 사용해야 한다.
+또한 클라이언트 측에서 만드는 것보다 서버에서 만드는 것이 더 유용할 때만 사용해야 한다.
+
+### Client-side Rendering
+
+서버에서 pre-rendering이 필요하지 않으면 CSR을 사용할 수 있다.
+우선 SSG로 외부데이터가 필요하지 않은 HTML을 만든다.
+그리고 페이지가 로딩되면 자바스크립트로 외부 데이터를 불러온다.
+
+Next.js는 클라이언트에서 데이터를 불러올 때 SWR을 사용한다.
+자세한 내용은 [SWR](https://swr.vercel.app/ko)을 참조하자.
+
+## Dynamic Routes
+
+Next.js는 pages 내의 파일 이름으로 경로를 생성한다.
+그런데 경로를 유동적으로 정해야 하는 경우가 있다.
+예를 들어 파일 이름을 불러오고 이를 바탕으로 페이지 라우팅을 한다고 하자.
+이는 각 페이지 이름에 맞는 파일을 하나씩 만든다면 가능하겠지만, 파일이 추가될 때마다 매 번 새로 경로를 만들어야 한다.
+또한 파일 이름을 모르는 경우엔 미리 경로를 만들 수도 없다.
+
+이를 해결하기 위해 Next.js는 동적 라우팅을 지원한다.
+동적 라우팅은 아직 정해지지 않은 경로를 만드는 방법으로 파일 이름에 []를 붙여서 만들 수 있다.
+예를 들어 *pages/[id].js*라는 파일을 만들면 /[id]라는 페이지가 만들어진다.
+여기서 id에 전달되는 내용에 따라서 다른 페이지를 만들어준다.
+
+동적 경로를 사용해서 SSG를 만들 때 사용하는 것이 getStaticPaths다.
+getStaticPaths는 동적 라우팅에 필요한 변수를 반환해야 한다.
+위 예시를 보면 id가 필요하므로 getStaticPaths는 id를 반환해야 한다.
+
+```javascript
+export async function getStaticPaths() {
+	// return a list of possible value for id
+}
+```
+
+여기서 getStaticPaths가 반환하는 값은 getStaticProps로 전달된다.
+이 값은 params로 사용할 수 있다.
+
+```javascript
+export async function getStaticPaths() {
+	// Return a list of possible value for id
+}
+
+export async function getStaticProps({ params }) {
+	// Fetch necessary data for the blog post using params.id
+}
+```
+
+구체적인 예시로 살펴보자.
+fs로 경로 내의 파일 이름을 읽어 이를 id로 사용하려고 한다.
+getStaticPaths는 행렬 내에 params를 담고 있는 형태로 데이터를 내보내야 한다.
+
+```javascript
+xport function getAllPostIds() {
+  const fileNames = fs.readdirSync(postsDirectory);
+
+  // Returns an array that looks like this:
+  // [
+  //   {
+  //     params: {
+  //       id: 'ssg-ssr'
+  //     }
+  //   },
+  //   {
+  //     params: {
+  //       id: 'pre-rendering'
+  //     }
+  //   }
+  // ]
+  return fileNames.map((fileName) => {
+    return {
+      params: {
+        id: fileName.replace(/\.md$/, ''),
+      },
+    };
+  });
+}
+```
+
+getStaticPaths는 위 함수를 실행시켜서 경로 리스트를 paths에 담아서 내보낸다.
+
+```javascript
+import { getAllPostIds } from "../../lib/posts";
+
+export async function getStaticPaths() {
+	const paths = getAllPostIds();
+	return {
+		paths,
+		fallback: false,
+	};
+}
+```
+
+여기서 fallback은 리스트에 없는 페이지를 어떻게 처리할지 결정한다.
+fallback: false면 리스트에 없는 페이지는 404 페이지를 보여준다.
+개인적으론 경로를 지정하지 않은 페이지엔 404가 나와야 한다고 생각하므로 나머지 기능은 써본적이 없다.
+그 외의 값은 true와 blocking이 있는데, 요청 경로를 가지고 SSG나 SSR처럼 작동해서 페이지를 만드는 방식이다.
+자세한 것은 [Fallback](https://nextjs.org/docs/api-reference/data-fetching/get-static-paths#fallback-false)을 보자.
+
+### 404 페이지
+
+404 페이지는 pages/404.js에 만들면 빌드 타임에 자동으로 만들어진다.
 
 # Reference
 
