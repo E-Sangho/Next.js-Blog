@@ -20,6 +20,7 @@ export default function PostHero({ metaData }: IPostHero) {
 					className="w-full h-40 object-cover rounded-md"
 					src={metaData.cover_image}
 					alt=""
+					layout="fill"
 				/>
 			</div>
 		</div>

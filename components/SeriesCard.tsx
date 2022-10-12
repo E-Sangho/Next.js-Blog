@@ -12,6 +12,8 @@ export default function SeriesCard({ metaData }: ISeriesPage) {
 				className="w-28 h-28 rounded-md"
 				src={metaData.cover_image}
 				alt=""
+				width={112}
+				height={112}
 			/>
 			<div className="mx-2 pb-1 flex flex-col justify-between w-full">
 				<div>

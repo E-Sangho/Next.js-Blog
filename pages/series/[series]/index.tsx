@@ -46,7 +46,7 @@ export const getStaticProps: GetStaticProps = ({ params }) => {
 
 	return {
 		props: {
-			metaDataWithTitle,
+			metaDataWithTitle: JSON.parse(JSON.stringify(metaDataWithTitle)),
 		},
 	};
 };

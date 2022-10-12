@@ -36,14 +36,18 @@ export const getStaticProps: GetStaticProps = () => {
 
 			if (metaData?.series && !seriesSet.has(metaData.series)) {
 				seriesSet.add(metaData.series);
+
 				return metaData;
 			}
 		})
 		.filter((e) => e);
 
+	// `object` ("[object Date]") cannot be serialized as JSON. Please only return JSON serializable data types.
+	// metaData로 반환하니 JSON 형태로 반환되지 않는 문제가 있는듯 하다.
+	// 그래서 JSON.stringify를 사용했다.
 	return {
 		props: {
-			series,
+			series: JSON.parse(JSON.stringify(series)),
 		},
 	};
 };
