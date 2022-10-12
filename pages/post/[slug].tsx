@@ -46,7 +46,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
 		props: {
 			post: {
 				source: mdxSource,
-				metaData,
+				metaData: JSON.parse(JSON.stringify(metaData)),
 			},
 		},
 	};

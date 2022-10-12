@@ -76,9 +76,13 @@ export const getStaticProps: GetStaticProps = () => {
 
 	return {
 		props: {
-			posts: posts.sort((a, b) => {
-				return b.metaData.date - a.metaData.date;
-			}),
+			posts: JSON.parse(
+				JSON.stringify(
+					posts.sort((a, b) => {
+						return b.metaData.date - a.metaData.date;
+					})
+				)
+			),
 		},
 	};
 };
