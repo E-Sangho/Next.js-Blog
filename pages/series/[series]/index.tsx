@@ -52,7 +52,21 @@ export const getStaticProps: GetStaticProps = ({ params }) => {
 };
 
 export const getStaticPaths: GetStaticPaths = () => {
-	const files = fs.readdirSync(path.join("posts"));
+	let files = fs.readdirSync(path.join("posts"));
+
+	files = files.filter((fileName) => {
+		const data = fs.readFileSync(path.join("posts", fileName), {
+			encoding: "utf-8",
+		});
+
+		const { data: metaData } = matter(data);
+
+		if (metaData.series) {
+			return true;
+		}
+
+		return false;
+	});
 
 	const series = Array.from(
 		new Set(

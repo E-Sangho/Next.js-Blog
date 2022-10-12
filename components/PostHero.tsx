@@ -1,4 +1,5 @@
 import { IMetaData } from "@apis/Posts";
+import Image from "next/image";
 
 interface IPostHero {
 	metaData: IMetaData;
@@ -15,7 +16,7 @@ export default function PostHero({ metaData }: IPostHero) {
 				<time dateTime={metaData.date}> {metaData.date.slice(0, -9)}</time>
 			</p>
 			<div className="w-full text-center relative shadow-md mt-4">
-				<img
+				<Image
 					className="w-full h-40 object-cover rounded-md"
 					src={metaData.cover_image}
 					alt=""

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { IMetaData } from "@apis/Posts";
+import Image from "next/image";
 
 export default function SeriesList({
 	metaDataWithTitle,
@@ -16,7 +17,7 @@ export default function SeriesList({
 					key={data.metaData.title}
 					className="flex my-4 space-x-4 rounded-md shadow-md"
 				>
-					<img
+					<Image
 						className="w-28 h-28 rounded-md"
 						src={data.metaData.cover_image}
 						alt=""

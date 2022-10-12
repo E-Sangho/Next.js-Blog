@@ -1,10 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { IPost } from "@apis/Posts";
 
 export default function PostCard({ post }: { post: IPost }) {
 	return (
 		<div className="flex my-4 space-x-4 rounded-md shadow-md bg-slate-900">
-			<img
+			<Image
 				className="w-28 h-28 rounded-md"
 				src={post.metaData.cover_image}
 				alt=""
