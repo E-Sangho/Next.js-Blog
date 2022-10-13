@@ -18,7 +18,7 @@ export default function SeriesCard({ metaData }: ISeriesPage) {
 			<div className="mx-2 pb-1 flex flex-col justify-between w-full">
 				<div>
 					<h3 className="text-lg font-bold text-gray-200">
-						<Link href={`/series/${metaData.series}`}>{metaData.title}</Link>
+						<Link href={`/series/${metaData.series}`}>{metaData.series}</Link>
 					</h3>
 					<p className="text-sm mt-2 text-gray-500">{metaData.excerpt}</p>
 				</div>

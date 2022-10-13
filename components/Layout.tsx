@@ -16,7 +16,7 @@ export default function Layout({
 	hasTabBar,
 }: ILayout) {
 	return (
-		<div className="container">
+		<div className="">
 			<Header title={title} canGoBack={canGoBack} />
 			<div
 				className={ChainName(

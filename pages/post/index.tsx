@@ -30,7 +30,7 @@ const PostPage = ({ posts }: { posts: IPost[] }) => {
 
 	return (
 		<Layout title="Posts" hasTabBar={true}>
-			<div className="flex mx-4 overflow-x-scroll pb-4">
+			<div className="flex mx-4 py-2">
 				{tagList.map((tag: string) => (
 					<div
 						onClick={clickTag}

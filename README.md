@@ -1,3 +1,6 @@
+# 사용한 기술
+
+[See Blog](https://blog-e-sangho.vercel.app/series)
 [O] slug로 페이지 만들기  
 [O] 마크다운의 front matter 정보 가져오기  
 [O] 마크다운 내용 가져오기  
