@@ -1,0 +1,39 @@
+---
+title: 제목2
+date: 2022-06-26 10:15:21
+category: 카테고리
+tag: [Networking, CS]
+series: Computer Networking a Top-Down Apporach
+excerpt: "A summary of Application Layer of OSI 7 Layer"
+cover_image: /images/posts/networking.jpeg
+draft: true
+---
+
+1980년도 이전엔 표준 네트워크 프로토콜이 존재하지 않아 각 회사가 개별적인 프로토콜을 사용했다.
+그 때문에 컴퓨터 회사가 다르면 통신할 수 없는 경우가 비일비재했다.
+1977년 ISO(International Standardization Organization)에서는 이런 상황을 예견하고 네트워크 표준 통신 방법 제작에 착수했다.
+1984년 ISO는 OSI(Open Systems Interconnection Reference Model)을 발표했다.
+OSI는 2가지 특징이 있었는데, 하나는 7계층 모델이라는 추상적 모델을 제시한 것이고, 다른 하나는 프로토콜을 명시한 것이다.
+
+OSI 외에도 DARPA에서도 프로토콜의 표준을 정하려는 시도가 존재했다.
+이들은 TCP(Transmission Control Protocol)을 만들었는데, 이를 IP와 조합해서 TCP/IP 모델을 만든다.
+
+1983년 ARPANET은 TCP/IP을 표준으로 정했기 때문에 OSI 모델의 사용은 감소하고 오늘날에는 대부분 TCP/IP 모델을 사용한다.
+그렇지만 OSI 모델 역시 참고용 모델로 존재한다.
+
+TCP/IP는 모델을 프로토콜의 단위로 나누었다.
+애플리케이션 계층은 HTTP를 사용하고, 트랜스포트 계층은 TCP를 사용한다.
+ISO 모델이 서로 다른 구조를 사용하지만, 구조 체계가 비슷하기 때문에 개념의 이해를 위해 종종 사용된다.
+
+네트워크 계층은 OSI 7계층이나 TCP/IP 4계층으로 표현한다.
+책에서는 7계층으로 표시하기보다 4계층으로 표시하는데, 이는 OSI의 상위 3계층을 하나로 취급해도 별 차이가 없기 때문이다.
+OSI 7계층의 상위 3계층은 Application, Representation, Session이다.
+Application은 네트워크 통신을 사용하는 애플리케이션을 가리키는데, 웹 브라우저가 대표적인 예다.
+그리고 Representation은 데이터의 표현 방법이나 암호 방법을 규정하고, Session은 통신 시에 유지해야 할 데이터를 저장하는 역할을 한다.
+4계층에서 이들을 하나로 묶는 이유는, 이 내용이 모두 애플리케이션 내에서 구현되기 때문이다.
+애플리케이션에서 이미지를 보내기로 결정했다면, jpg, png 등의 확장자 중에서 선택을 하고, 암호화 방법을 결정한다.
+그리고 데이터 저장을 위한 세션 공간을 유지한채로 통신을 운영체제에 위임해서 진행한다.
+
+# Reference
+
+1. [위키백과 OSI 모형](https://ko.wikipedia.org/wiki/OSI_%EB%AA%A8%ED%98%95)
