@@ -1,0 +1,35 @@
+---
+title: URL
+date: 2022-10-17 15:32:45
+category: CS
+tag: [Networking, CS]
+excerpt: "Posting about what is components of URL"
+cover_image: /images/posts/url.webp
+draft: true
+---
+
+# URL(Uniform Resource Locator)
+
+우리는 구글에 접속할 때 단순히 google.com을 입력한다.
+하지만 실제 구글의 주소는 "https://www.google.com:443"(또는 http://www.google.com:80)로, 평소에 우리가 쓰는 주소는 이를 간략하게 쓴 것이다.
+위 주소의 각각의 의미는 아래와 같다.
+
+- https: 프로토콜
+- www.google.com: 도메인 이름
+- :443: 포트번호
+
+즉, URL은 통신방법(프로토콜), IP 주소(도메인 이름), 프로세서 구분(포트 번호)에 필요한 모든 정보를 가지고 있다.
+웹은 주로 http 통신을 사용하므로 프로토콜은 http인 경우가 많고, 그 외에도 메일을 위한 mailto나 파일 전송을 위한 ftp가 있다.
+도메인 이름은 DNS 서버와 통신해서 IP 주소로 바뀐다.
+이로 인해 원하는 서버가 어디에 존재하는지 알 수 있다.
+마지막으로 포트 번호는 도착한 데이터가 어떤 프로세서로 전달될지 결정한다.
+소켓을 열 때 포트 번호를 결정하는데, 이 포트번호로 전송되는 내용은 해당 소켓으로 전달된다.
+이로 인해 여러 프로세스가 동시에 통신하는 것이 가능해진다.
+또한 서버에 웹 페이지를 요청하는 포트 번호는 결정되어 있다.
+http를 사용하는 경우 포트번호 80을 쓰고 https를 사용하는 경우 443을 사용한다.
+보통 구글에 접속할 때 "http://www.google.com"에 접속하는데 이는 http 통신을 사용함을 명시했으므로 포트 80을 사용할 것이라 예측할 수 있다.
+그러므로 뒤에 :80을 생락한 것인데, 직접 "http://www.google.com:80"으로 접속해보면 같은 페이지가 나오는 것을 볼 수 있다.
+
+## Reference
+
+1. [businessinsider](https://www.businessinsider.com/guides/tech/what-is-a-url)
