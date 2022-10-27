@@ -1,0 +1,37 @@
+---
+title: iTerm2 & zsh
+date: 2022-10-27 16:46:11
+category: etc
+tag: [iTerm2, terminal]
+excerpt: ""
+cover_image: /images/posts/iterm2.jpg
+draft: true
+---
+
+## iTerm2
+
+맥에서 기본 터미널이 제공되긴 하지만 가독성도 그리 좋지 않고 현재 실행 정보를 그다지 알려주진 않는다.
+그래서 iTerm2를 설치하기로 했는데, iTerm2는 터미널이 하는 일을 그대로 해줄뿐만 아니라 가독성 좋은 테마를 설정할 수 있다.
+[iTerm2](https://iterm2.com/downloads.html)에서 파일을 다운로드하고 설치해준다.
+다음으로 homebrew를 설치하기 위해 `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`를 입력한다.
+homebrew로 `brew install zsh`로 zsh를 설치하고, `sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"`로 oh-my-zsh를 설치한다.
+이제 iTerm2를 보면 기본적인 생상이 적용된 것을 볼 수 있다.
+
+iTerm2는 여러가지 테마를 사용할 수 있는데, [Themes](https://github.com/ohmyzsh/ohmyzsh/wiki/Themes)에서 테마를 볼 수 있다.
+그 중 agonster를 사용했다.
+~/.zshrc 파일을 열어준 다음 _ZSH_THEME_ 항목을 찾아 이를 `ZSH_THEME="agnoster"`로 변경한다.
+
+다음으로 폰트를 변경해줘야 하는데 좌측 상단의 iTerm2 > Preferences > Profiles > Text로 이동한다.
+그리고 제일 밑의 Font에서 글씨체를 변경해주면 된다.
+이때 따로 원하는 폰트가 있을 경우 인터넷에서 다운 받아서 사용하면 된다.
+
+터미널의 가장 앞을 보면 사용자 이름이 나온다.
+이 정보는 그다지 필요하지 않으므로 삭제해야 하는데, ~/.zshrc 파일을 열고 아래 코드를 추가해준다.
+
+```
+prompt_context() {
+  if [[ "$USER" != "$DEFAULT_USER" || -n "$SSH_CLIENT" ]]; then
+    prompt_segment black default "%(!.%{%F{yellow}%}.)$USER"
+  fi
+}
+```
