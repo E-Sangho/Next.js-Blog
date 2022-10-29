@@ -91,3 +91,243 @@ config 폴더를 열어보면 여러 파이썬 파일이 있다.
 추가로 gitignore를 만들어주면 되는데, vscode의 extension을 사용하면 간단하게 만들 수 있다.
 extension에서 gitignore를 검색하고 설치한다.
 그 후 설정 > command palette > add gitignore > python으로 gitignore 파일을 만든다.
+
+## runserver
+
+`poetry shell`을 실행시킨 후 `python3 manage.py runserver`로 django를 실행 시킬 수 있다.
+서버가 실행되면 서버가 실행되는 포트 번호가 출력되고, db.sqlite3라는 파일이 생성된다.
+http://127.0.0.1:8000에 접속하면 장고 페이지가 나온다.
+
+```
+Watching for file changes with StatReloader
+Performing system checks...
+
+System check identified no issues (0 silenced).
+
+You have 18 unapplied migration(s). Your project may not work properly until you apply the migrations for app(s): admin, auth, contenttypes, sessions.
+Run 'python manage.py migrate' to apply them.
+October 28, 2022 - 00:39:35
+Django version 4.1.2, using settings 'config.settings'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+```
+
+## miagration
+
+앞서 django를 실행시킨 터미널을 보면 에러 메세지가 있다.
+이는 18개의 migration이 일어나지 않아서 발생하는 문제로 `python manage.py migrate`를 입력하면 해결된다고 적혀있다.
+migraiton은 db.sqlite3의 내용을 변경하는데 사용된다.
+콘솔에 `python3 magage.py migrate`를 입력하면 아래처럼 migration이 일어난다.
+
+```
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying auth.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying sessions.0001_initial... OK
+```
+
+코드를 실행시킨 결과 db.sqlite3의 내용이 변경된다.
+실행 전의 db.sqlite3 파일을 열어보면 빈 내용만 있지만, 실행 후에는 어떤 내용이 들어있게 된다.
+이때 db.sqlite3 내의 내용은 사람이 읽기 위해 존재하는 파일이 아니므로 읽을 순 없다.
+
+## Super User
+
+다시 django를 실행시키기 위해 `python3 manage.py runserver`를 입력한다.
+그리고 http://127.0.0.1:8000/admin에 접속하면 로그인 창이 나온다.
+아직 우리는 사용자 정보를 입력하지 않았으므로 로그인은 불가능하다.
+ctrl+c로 서버를 종료시킨 다음 계정을 만들어보자.
+모든 데이터를 조회하고 관리하기 위해 관리자 계정이 필요하다.
+이를 Super User라고 하는데 `python3 manage.py createsuperuser`로 관리자 계정을 만들 수 있다.
+Username, Email, Password를 채우면 되는데, 비밀번호가 너무 짧거나 보안적으로 문제가 있는 경우 이를 알려준다.
+예를 들어서 123456 같은 암호를 선택하면 아래와 같은 문장이 나온다.
+
+```
+Username (leave blank to use 'superuser'):
+Email address:
+Password:
+Password (again):
+This password is too short. It must contain at least 8 characters.
+This password is too common.
+This password is entirely numeric.
+Bypass password validation and create user anyway? [y/N]:
+```
+
+일단은 위 질문에 y로 대답한 다음 계정을 만든다.
+그리고 서버를 실행시키고 /admin 페이지로 이동해서 로그인 해보자.
+이제 페이지에서 User과 Group의 데이터를 조회하고 관리할 수 있다.
+여기서 super user의 계정도 변경할 수 있으므로, 만약 계정을 잊어버렸다면 새로 하나 만들고 이전 것을 지우면 된다.
+
+## Models
+
+데이터베이스를 위해서 모델을 만들어주려고 한다.
+모델을 만들려면 startapp과 모델의 이름을 사용해야하는데, 예를 들어 houses라는 모델은 `python manage.py startapp houses`로 만들 수 있다.
+명령을 실행하면 houses라는 폴더가 생기고 그 안에 여러 파일이 생성된다.
+그 중 models.py 파일에 모델을 만들 수 있는데, 이는 class를 생성하는 것으로 가능하다.
+class는 models.Model을 상속받아서 사용해야 한다.
+
+```python
+# models.py
+class House(models.Model):
+  """Model Definition for Houses"""
+  name = models.CharField(max_length=140)
+  price = models.PositiveIntegerField()
+  description = models.TextField()
+  address = models.CharField(max_length=140)
+```
+
+위 코드를 설명해보자면 name, price, description, address라는 항목을 만들었다.
+이때 각각이 어떤 자료형인지 표시하려면 models를 사용해서 적어준다.
+name은 최대 길이 140 이하의 문자열로 표시하고 싶으므로 `name = models.CarField(max_length=140)`이라고 적었다.
+
+모델을 만들었지만 파일을 저장해도 서버가 재시작되지 않는다.
+이는 우리가 만든 모델이 아직 추가되지 않아서 생기는 문제다.
+만든 모델을 적용하려면 config/settings.py에 추가해야 한다.
+추가할 내용은 houses 폴더의 apps.py 파일 내의 HousesConfig 클래스다.
+파일을 열어서 INSTALLED_APPS를 찾은 다음 "houses.apps.HousesConfig"를 추가해준다.
+이제 models.py 파일을 수정하면 자동으로 서버가 재시작된다.
+
+```python
+# config/settings.py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'houses.apps.HousesConfig'
+]
+```
+
+admin.py에 houses 모델을 추가해줘야 한다.
+역시 class를 만들어야 하는데 admin.ModelAdmin을 상속받아야 한다.
+내부에 변경점은 없으므로 pass를 적어준다.
+그후 class 위에 `@admin.register(House)`라고 적어준다.
+여기서 House는 models.py의 House이므로 이를 불러와줘야 한다.
+
+```python
+# admin.py
+from django.contrib import admin
+from .models import House
+
+# Register your models here.
+
+@admin.register(House)  #decorator
+class HouseAdmin(admin.ModelAdmin):
+  pass
+```
+
+위와 같이 작성한 후에 admin 페이지에 접속하면 에러가 발생한다.
+우리는 django에게 houses에 어떤 데이터가 들어가는지 알려줬다.
+하지만 아직 이는 데이터베이스 파일인 db.sqlite3에 전달되지 않았다.
+우선은 migration을 만들기 위해 `python3 manage.py makemigrations`을 입력한다.
+콘솔창에는 아래 내용이 출력된다.
+
+```
+Migrations for 'houses':
+  houses/migrations/0001_initial.py
+    - Create model House
+```
+
+보다시피 houses/migrations/0001_initial.py 파일에 migration이 생성되었다는 내용이다.
+파일을 확인해보면 실제로 migraiton이 생성된 것을 볼 수 있다.
+
+```python
+# houses/migrations/0001_initial.py
+ class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='House',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('name', models.CharField(max_length=140)),
+                ('price', models.PositiveBigIntegerField()),
+                ('description', models.TextField()),
+                ('address', models.CharField(max_length=140)),
+            ],
+        ),
+    ]
+```
+
+위의 House를 보면 이전에 우리가 만들었던 내용이 그대로 만들어진 것을 볼 수 있다.
+이제 위 migration을 데이터베이스에 적용시켜야 하므로 `python3 manaeg.py migrate`를 실행한다.
+그러면 아래와 같은 내용이 출력된다.
+
+```
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, houses, sessions
+Running migrations:
+  Applying houses.0001_initial... OK
+```
+
+/admin 페이지에 접속해보면 이전과는 달리 Houses라는 항목이 생긴 것을 볼 수 있다.
+
+pylance: python server for vscode
+django를 global하게 설치하지 않았으므로 파일에서 노란줄로 에러 표시
+cmd + shift + p > python select interpreter > poetry 선택
+poetry 경로가 안 나올 경우 poetry env info --path로 경로를 검색한 다음 인터프리터에 추가해서 가능
+
+formatter black 설치
+
+## Custom Model
+
+우리만의 user 만들기
+python manage.py startapp users
+users > models.py
+
+```python
+# models.py
+from django.contrib.auth.models import AbstractUser
+
+class User(AbstractUser):
+  pass
+```
+
+config > settings.py
+
+```python
+INSTALLED_APPS = [
+  ...
+  "users.apps.UsersConfig"
+]
+AUTH_USER_MODEL = "users.User"
+```
+
+db.sqlite3를 삭제 > houses > migrations의 0001.py 파일 삭제
+
+python manage.py makemigrations
+
+python manage.py migrate
+
+```python
+# admin.py
+from django.contrib.auth.admin import UserAdmin
+from .models import User
+
+@admin.register(User)
+class CustomUserAdmin(UserAdmin):
+  pass
+```
