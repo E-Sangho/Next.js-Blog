@@ -444,7 +444,7 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
         send_mail(subject, message, from_email, [self.email], **kwargs)
 ```
 
-이제 모델을 적용하려면 settings.py 파일로 이동해서 아래처럼 적어준다.
+이제 모델을 적용하려면 config/settings.py 파일로 이동해서 아래처럼 적어준다.
 
 ```python
 # settings.py
@@ -460,12 +460,12 @@ AUTH_USER_MODEL = "users.User"
 INSTALLED_APPS에 추가하는 것은 이전에 우리가 한 것처럼 migration을 만들 때 모델을 찾기 위함이다.
 그리고 밑에 AUTH_USER_MODEL은 우리가 User로 어떤 모델을 사용할지 결정한다.
 기본값은 auth.User이지만 우리는 직접 만든 User를 사용하기로 했으므로 users.User를 사용한다.
-만약 기존에 사용자가 존재했다면 에러가 발생한다.
+서버를 실행할때 만약 기존에 사용자가 존재했다면 에러가 발생한다.
 이는 기존의 User과 지금의 User가 다른 모델을 사용하고 있기 때문에 발생한다.
 해결하기 위해선 db.sqlite3를 삭제하고 각 모델 폴더에서 migrations 폴더에 들어간다.
 그리고 0001_initial.py 같이 숫자로 넘버링된 파일을 모두 지워준다.
 이때 migraions 폴더를 모두 지우는 것이 아니라 숫자가 붙은 파일만 지워야 한다.
-그 후 `python manage.py makemigraions`으로 migration을 만들고 `python manage.py migrage`로 db를 업데이트 해준다.
+그 후 `python manage.py makemigraions`으로 migration을 만들고 `python manage.py migrate`로 db를 업데이트 해준다.
 모델은 admin에 등록하기 위해선 아래처럼 작성하면 된다.
 이때 admin.ModelAdmin이 아니라 UserAdmin을 사용한 것에 주의하자.
 
@@ -496,9 +496,10 @@ first_name, last_name 이 존재하는데 우리는 이를 통일해서 name으�
 이때 필수적으로 들어가야 하는 max_length는 반드시 존재해야 하므로, AbstractUser에서 코드를 복사한 다음 수정하는 것을 추천한다.
 
 ```python
+# models.py
 class User(AbstractUser):
-  first_name = models.CharField(max_length=150, editable=false)
-  last_name = models.CharField(max_length=150, editable=false)
+  first_name = models.CharField(max_length=150, editable=False)
+  last_name = models.CharField(max_length=150, editable=False)
 ```
 
 원하는 필드를 추가하는 방법은 이전에 모델을 만드는 방법과 동일하다.
@@ -512,6 +513,15 @@ class User(AbstractUser):
 ```
 
 위처럼 모델을 만들고 `python manage.py makemigraions`로 migration을 만들면 에러 메세지가 나온다.
+
+```
+It is impossible to add a non-nullable field 'is_host' to user without specifying a default. This is because the database needs something to populate existing rows.
+Please select a fix:
+ 1) Provide a one-off default now (will be set on all existing rows with a null value for this column)
+ 2) Quit and manually define a default value in models.py.
+Select an option:
+```
+
 에러 메세지는 is_host에 null 값이 들어갈 수 없는데, null 값이 들어갔다는 내용이다.
 문제 발생 원인을 알아보려면 기존의 데이터 필드와 새로운 데이터 필드의 차이를 봐야 한다.
 아래는 기존 데이터의 형태다.
@@ -564,7 +574,7 @@ class User(AbstractUser):
 ```
 
 이제 `pyhton manage.py makemigrations`를 실행시키면 정상적으로 migration이 만들어진다.
-하지만 admin 페이지에 들어가서 User를 확인해보면 에러가 발생하는데, first_name과 last_name을 editable=False로 지정해서 발생하는 문제다.
+하지만 admin/users/user 페이지에 들어가서 사용자를 확인해보면 에러가 발생하는데, first_name과 last_name을 editable=False로 지정해서 발생하는 문제다.
 우리 admin.py 파일을 보면 UserAdmin을 사용하고 있는데, UserAdmin은 first_name과 last_name을 사용하고 있다.
 django는 models에서는 둘을 수정할 수 없게 만들었지만, admin에서는 수정할 수 있게 만들었으므로 에러를 보여주는 것이다.
 그러므로 admin.py에서 둘을 덮어쓰기해야 한다.
@@ -582,6 +592,7 @@ class CustomUserAdmin(UserAdmin):
 위처럼 작성하고 admin 페이지에서 User를 확인하면 필드가 정상적으로 보인다.
 그런데 필드의 항목이 늘어나서 서로 구분하고 싶은 경우가 있을 수 있다.
 위의 내용을 하나의 Prifile이라는 항목에 추가하고 싶으면 fieldsets에 아래처럼 작성한다.
+이때 ,를 사용하지 않으면 list나 tuple을 사용하지 않아서 에러가 나오니 주의하자.
 
 ```python
 # admin.py
@@ -602,7 +613,7 @@ UserAdmin에는 그 외에도 Permission이나 Important Dates 같은 항목을 
 정리하면 fieldsets는 field보다 더 많은 기능이 있다.
 필드 내용을 섹션을 나눠서 정리할 수 있을 뿐더러, 섹션이 보이는 방법을 수정해서 보기 편하게 해준다.
 
-admin 페이지로 돌아와보면 first_name과 last_name이 보이는데, 우리가 사용하지 않는 필드이므로 없애고 싶다.
+admin/users/user 페이지로 돌아와보면 first_name과 last_name이 보이는데, 우리가 사용하지 않는 필드이므로 없애고 싶다.
 이는 list_diaplay를 설정하는 것으로 가능한데, list_display는 원하는 column만 보이게 만든다.
 
 ```python
@@ -682,3 +693,167 @@ class House(models.Model):
 sqlite 파일을 확인하고 싶으면 SQLite Viewer라는 익스텐션을 설치하면 된다.
 vscode에서 SQLite Viewer를 검색하고 설치한다.
 그 후 db.sqlite3를 열어보면 데이터를 엑셀처럼 읽을 수 있게 된다.
+
+## ImageField
+
+User에 아바타용 이미지를 추가하는 필드는 *ImageField*로 만들 수 있다.
+users/models.py에서 아래처럼 코드를 추가해준다.
+
+```python
+class User(AbstractUser):
+  ...
+  avatar = models.ImageField()
+```
+
+그런데 서버를 실행시키면 에러가 발생할텐데 이는 Pillow가 없어서 발생하는 문제다.
+파이썬에서 이미지를 사용하려면 Pillow라는 패키지를 설치해야 하는데, 우리는 poetry에 설치해줘야 하므로 `poetry add Pillow`로 패키지를 설치한다.
+이렇게 만들면 이미지를 필수적으로 첨부해야 한다.
+만약 이미지를 넣지 않게 하고 싶으면 `models.ImageField(blank=True)`를 적어줘야 한다.
+blank=True와 null=True의 차이점은 blank는 말 그대로 빈 공간으로 놔둔다는 것이고, null은 null 값을 허용한다는 것이다.
+
+## Choices
+
+필드에 정해진 값에서 선택할 수 있게 만들려면 Choices를 사용한다.
+Choices는 tuple을 사용해서 만드는데 아래처럼 만든다.
+
+```python
+YEAR_IN_SCHOOL_CHOICES = [
+    ('FR', 'Freshman'),
+    ('SO', 'Sophomore'),
+    ('JR', 'Junior'),
+    ('SR', 'Senior'),
+    ('GR', 'Graduate'),
+]
+```
+
+여기서 좌측값(FR, SO, JR 등)이 모델에서 선택할 수 있는 값이고, 오른쪽은 admin에서 보게될 값이다.
+예를 들어서 값을 JR로 정했다면 admin에서는 Junior로 표시된다.
+
+Choices는 모델 클래스 안에서 만들어서 사용해야 편한데, 수정할 일이 있으면 해당 모델 안에서 모두 확인할 수 있기 때문이다.
+아래는 CharField에 choices를 적용한 것이다.
+
+```python
+from django.db import models
+
+class Student(models.Model):
+  YEAR_IN_SCHOOL_CHOICES = [
+    ('FR', 'Freshman'),
+    ('SO', 'Sophomore'),
+    ('JR', 'Junior'),
+    ('SR', 'Senior'),
+    ('GR', 'Graduate'),
+  ]
+    year_in_school = models.CharField(
+        max_length=2,
+        choices=YEAR_IN_SCHOOL_CHOICES,
+        default=FRESHMAN,
+    )
+```
+
+다른 방법으로 하위 클래스를 만드는 방법이 있다.
+하위 클래스를 사용하면 열거하는 방식으로 만들 수 있는데, 괄호 없이 만들 수 있게 된다.
+하위 클래스는 TextChoices를 사용하는데 아래처럼 적어준다.
+
+```python
+from django.db import models
+
+class Student(models.Model):
+
+  class YearInSchool(models.TextChoices):
+    FRESHMAN = ('FR', 'Freshman')
+    SOPHOMORE = ('SO', 'Sophomore')
+    JUNIOR = ('JR', 'Junior')
+    SENIOR = ('SR', 'Senior')
+    GRADUATE = ('GR', 'Graduate')
+
+  year_in_school = models.CharField(
+      max_length=2,
+      choices=YearInSchool.choices,
+      default=FRESHMAN,
+  )
+```
+
+다음으로 admin.py에서 이를 적용해줘야 하는데, fields에 year_in_school을 추가해주면 된다.
+
+## Meta
+
+모델을 만들다보면 필드가 아닌 항목도 만들게 된다.
+예를 들어서 admin 페이지에서 복수형을 수정하고 싶다거나, 테이블 이름을 바꾸고 싶거나, 순서를 변경하는 등의 일이 필요하다.
+이처럼 필드 이외의 항목을 수정하는 것은 하위 클래스의 Meta를 수정하는 것으로 가능하다.
+예를 들어서 admin 페이지를 보면 모델을 자동으로 복수형으로 바꿔준다.
+User는 Users가 되고 Room은 Rooms가 된다.
+하지만 복수형은 예외가 많은데, 대표적으로 Amenity는 복수형이 Amenities다.
+admin 페이지는 이를 인식하지 못하므로 Amenitys가 된다.
+물론 별다른 문제점은 없겠지만 해결하는 것이 좋다.
+Meta의 verbose_name_plural을 수정하면 복수형을 바꿀 수 있다.
+아래는 Amenity 모델의 복수형을 수정한 것이다.
+
+```python
+class Amenity(models.Model):
+  ...
+  class Meta:
+    verbose_name_plural = "Amenities"
+```
+
+## Abstract base classes
+
+모델을 만들다보면 공통적으로 가졌으면 하는 기능이 있을 것이다.
+예를 들어서 생성 시간과 수정 시간은 모든 모델에게 필요하다.
+공통된 모델을 만들기 위해 `python manage.py createapp common`로 common이라는 모델을 만든다.
+그 후 settings.py에 아래처럼 common을 추가해준다.
+
+```python
+# settings.py
+INSTALLED_APP = [
+  ...
+  "common.apps.CommonConfig",
+]
+```
+
+그리고 common의 models.py 파일로 옮겨서 아래처럼 만든다.
+
+```python
+# models.py
+from django.db import models
+
+class CommonModel(models.Model):
+
+    """Common Model Definition"""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+```
+
+위에서 DateTimeField 필드는 시간을 관리하는 필드다.
+여기에 auto_now_add와 auto_now를 설정했다.
+auto_now_add는 모델이 생성된 시간을 기준으로 만들어진다.
+반면 auto_now는 매번 모델이 수정된 시간을 기준으로 하므로 파일이 수정된 시간을 표시하는데 사용된다.
+여기서 끝낸다면 django는 위 모델을 common이라는 새로운 모델이라고 생각하게 된다.
+Meta 클래스에 *abstract=True*를 추가하면 모델을 만드는데 사용되지 않게 된다.
+이제 이 모델을 기본으로 다른 모델을 만들면 공통으로 포함되는 모델을 만들 수 있다.
+예를 들어 Room 모델에 models.Model 대신에 CommonModel을 추가하면 된다.
+
+```python
+from common.models import CommonModel
+
+class Room(CommonModel):
+  # This class includes created_at and updated_ad
+  ...
+```
+
+## \_\_str\_\_
+
+모델에서 소유자를 ForeignKey를 사용하고 있으므로, admin 페이지에서 ID로 표시된다.
+그런데 ID로 표시되기 보다 소유자의 이름으로 표시되면 더 보기 좋을 것이다.
+admin 페이지는 \_\_str\_\_에서 반환되는 값을 보여준다.
+예를 들어서 아래처럼 수정하면 ID 대신에 name을 보여준다.
+
+```python
+# rooms/models.py
+class Room(models.Model):
+  ...
+  def __str__(self):
+    return self.name
+```
+
+many to many
