@@ -857,3 +857,103 @@ class Room(models.Model):
 ```
 
 many to many
+
+## ORM(Object Relational Mapping)
+
+데이터베이스는 SQL을 사용해서 관리하는데, 데이터를 엑셀 같은 테이블 형태로 저장한다.
+그래서 각 데이터는 테이블의 한 칸을 차지하고 있고, ID와 Column을 가지고 그 값을 검색해낸다.
+앞서 우리가 만든 데이터는 객체 구조로 이뤄져 있는데, 예를 들어서 room 모델은 안에 user 모델이 들어 있다.
+그런데 이를 테이블 형태로 표현하려면 난감한다.
+room의 owner 필드에 user가 들어가야 하는데, user가 테이블 형태여서 여러 칸을 필요로 하기 때문이다.
+SQL에서 이를 직접 지정하고 관리할 수 있지만 그 과정에서 시간도 많이 걸리고 객체처럼 직관적으로 관계를 만들기 어렵다.
+그래서 사람들은 ORM을 사용하는데, 간단히 말해 객체로 모델을 작성하면 SQL로 바꿔서 적용시켜주는 것이다.
+
+### [Queries](https://docs.djangoproject.com/en/4.1/topics/db/queries/#retrieving-objects)
+
+지금까지는 admin 페이지를 이용해서 데이터를 생성, 삭제, 수정했다.
+django는 직접적으로 데이터를 수정할 수 있다.
+파이썬 코드를 직접 작성하고 실행해도 되지만, shell을 사용해서 즉각적으로 반응이 보이도록 예시를 들어보겠다.
+우선 `python manage.py shell`로 shell 창을 연다.
+여기서 모델을 불러와야 하므로 `from rooms.models import Room`을 한다.
+그 후 Room 객체를 사용할 수 있게 되는데, 모든 객체를 표시하기 위해 `Room.objects.all()`을 입력해보자.
+그러면 Room 모델의 데이터 정보가 나오게 된다.
+이처럼 직접적으로 조작하는 경우 Model.objects를 사용한다.
+사용가능한 기능은 all, get, create, save, filter, exclude 등이 있는데, 이름만 봐도 기능이 짐작될 것이다.
+각 기능은 변수를 받아서 좀 더 정확한 일을 한다.
+예를 들어서 get은 모델에서 일치하는 데이터를 찾기 위해 변수를 받아온다.
+아래는 name이 location이 서울인 방을 찾는다.
+
+```python
+from rooms.models import Room
+Room.objects.get(location="서울")
+```
+
+찾은 대상을 변수에 저장해서 다른 용도로도 사용가능하다.
+all으로 모든 모델을 찾은 다음 내용을 for문으로 출력하는 것도 가능하다.
+
+```python
+Rooms = Room.objects.all()
+
+for room in Room:
+  print(room.name)
+```
+
+위에선 name만 출력했지만, id, owner, price 등의 다른 내용도 가져올 수 있다.
+뿐만 아니라 해당 내용을 변경할 수 있고, save와 함께 사용하면 변경 내용을 저장할 수 있다.
+
+```python
+room = Room.objects.get(name="Beautiful House in 서울")
+room.price = 20
+room.save()
+```
+
+그 외에도 filter를 사용하면 조건에 맞는 모델만 찾을 수 있고, create로 생성하는 것도 가능하다.
+다른 기능은 [Making queries](https://docs.djangoproject.com/en/4.1/topics/db/queries/#retrieving-objects)에서 볼 수 있다.
+
+추가로 lookup을 설정할 수 있는데, lookup은 변수에 추가적인 조건을 다는 것이다.
+예를 들어서 price가 20 이하인 방을 찾고 싶다고 하자.
+앞서 배운 내용으로는 딱 20인 방을 찾을 순 있지만, 20 이하인 방을 찾을 순 없다.
+이는 변수 뒤에 \_\_lte를 사용하는 것으로 가능한데, lte는 less then equal의 약자다.
+
+```python
+room = Room.obejcts.filter(price__lte=20)
+```
+
+특정 문자를 포함하고 싶으면 **contains를 사용하고, 값이 크길 원하면 **ge를 사용하는 등 여러 lookup이 있다.
+자세한 내용은 위의 [Making queries](https://docs.djangoproject.com/en/4.1/topics/db/queries/#retrieving-objects)에서 검색해서 찾아보자.
+
+## Admin Methods
+
+admin 페이지에서 모델의 총 수를 보여주는 것은 꽤나 유용하므로, 이번에는 모델의 수를 보여주는 필드를 만들겠다.
+amenities의 수를 표시하는 필드를 total_amenities라고 하겠다.
+admin 페이지에서 보여줘야 하므로 list_display에 추가해준다.
+그리고 total_amenities를 정의해주면 되는데 크게 2가지 방법이 있다.
+첫 번째는 admin.py 파일에 total_amenities를 선언하는 것이다.
+이 경우 클래스 안에 total_amenities 메소드를 선언하고 count를 사용해서 그 수를 반환하면 된다.
+다른 방법은 models.py 파일에서 메소드를 선언하는 것이다.
+두 방법은 그다지 차이가 없지만 원본 모델을 admin으로 가져와서 보여줄 것인지, 아니면 모델의 하위 메소드로 선언할지의 차이다.
+admin 페이지에서만 수를 출력할 필요가 있다면 admin.py 파일에 추가하는 것이 더 자연스럽고, 다른 곳에서도 사용한다면 모델에서 선언하는 것이 좋다.
+
+```python
+# rooms.admin.py
+  list_display = (
+    ...
+    "total_amenities",
+  )
+
+# To display number of amenities on admin page.
+# There are two ways to show that.
+# First is write method on RoomAdmin
+
+  def total_amenities(self, room):
+    return room.amenities.count()
+
+# or you can write down on models.py like below
+
+# models.py
+class Room(models.Model):
+  ...
+  def total_amenities(self):
+    return self.amenities.count()
+
+```
