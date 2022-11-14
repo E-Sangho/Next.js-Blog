@@ -1017,3 +1017,18 @@ views.py
 fron django.http import HttpResponse
 include
 path("<int:room_id>")
+
+render
+
+## Django REST frameworks
+
+`poetry add djangorestframework`
+
+```python
+# settings.py
+THIRD_PARTY_APPS = [
+  "rest_framework",
+]
+
+INSTALLED_APPS = SYSTEM_APPS + CUSTOM_APPS + THIRD_PARTY_APPS
+```
