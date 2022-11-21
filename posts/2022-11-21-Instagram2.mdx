@@ -1,0 +1,208 @@
+---
+title: Instagram2
+date:
+category: CloneCoding
+tag: [Javascript, React, Python, Django]
+series: Create Instagram with React and Django
+excerpt: ""
+cover_image: /images/posts/networking.jpg
+draft: true
+---
+
+## Settings before start
+
+터미널을 열어서 `mkdir instagram-clone-backend`로 폴더를 만든다.
+그 후 폴더를 열어서 git init으로 깃을 시작한다.
+
+### Poetry installation
+
+[Poetry](https://python-poetry.org/docs/)에서 설치 방법을 찾을 수 있는데, 터미널에 `curl -sSL https://install.python-poetry.org | python3 -`를 입력한다.
+설치가 되었는지 확인하기 위해 `poetry`를 입력한다.
+명령어가 나오면 제대로 설치된 것이다.
+여기서 나는 *zsh: command not found: poetry*라는 오류가 발생했었다.
+이는 zsh가 poetry의 위치를 모르기 때문에 발생하는 문제다.
+우선 poetry 파일 위치를 알 필요가 있다.
+나는 ~/.local/bin에 poetry 파일이 있었다.
+위 경로를 ~/.zshrc 파일에 추가해줘야 하는데, 제일 아랫줄에 `export PATH=$HOME/.local/bin:$PATH`를 추가한다.
+다시 poetry를 입력하면 poetry가 정상적으로 작동한다.
+
+poetry를 사용하는 이유는 파이썬 가상환경을 만들기 위해서다.
+가상환경이 무엇인지 잠시 설명하겠다.
+파이썬을 사용하다보면 패키지를 설치해서 사용한다.
+그런데 프로젝트마다 패키지를 설치하다보면 서로 다른 버전을 사용해서 문제가 생기기도 한다.
+예를 들어서 현재 프로젝트는 django 4.0으로 만들었는데, 이후에 django가 5.0으로 업데이트 되면 작동하지 않는 기능이 생기게 된다.
+이처럼 pip를 사용해 패키지를 사용하면 패키지 버전 관리가 어려워진다.
+그래서 각 프로젝트마다 개별적인 공간을 만드는데, 이를 가상환경이라고 한다.
+가상환경은 패키지를 로컬하게 설치해주므로 각 프로젝트마다 독립적으로 패키지를 사용할 수 있게 된다.
+이로 인해 현재 프로젝트에 설치한 패키지가 다른 프로젝트에 영향을 줄 일이 없고, 앞처럼 버전관리로 고생하지 않아도 된다.
+
+`poetry init`으로 poetry 사용을 시작하면 몇 가지 질문이 나온다.
+아래처럼 입력하면 된다.
+
+```
+>>> poetry init
+
+This command will guide you through creating your pyproject.toml config.
+
+Package name [instagram-clone-backend]:
+Version [0.1.0]:
+Description []:
+Author [Sangho <istrangeho@gmail.com>, n to skip]:
+License []:   MIT
+Compatible Python versions [^3.9]:
+
+Would you like to define your main dependencies interactively? (yes/no) [yes] no
+Would you like to define your development dependencies interactively? (yes/no) [yes] no
+Generated file
+...
+Do you confirm generation? (yes/no) [yes] yes
+```
+
+파일을 보면 pyproject.toml이라는 파일이 생성되었다.
+그 안에는 우리 프로젝트의 설명이 적혀있고, 사용하는 패키지가 적혀있다.
+이제 이 안에 django를 설치해야 하는데 `poetry add django`로 설치할 수 있다.
+설치 후에 pyproject.toml 파일을보면 django가 추가되었다.
+그리고 poetry.lock 파일이 생성되었는데, 그 안에는 각 패키지의 버전 정보가 적혀있다.
+poetry는 install 명령어로 필요한 패키지를 다운받을 수 있는데, 이때 패키지의 최신 버전을 다운 받는다.
+그런데 패키지 버전이 달라지면 프로젝트가 작동하지 않을 수 있으므로 poetry.lock 파일에 패키지의 정보를 고정해놓는다.
+
+pyproject.toml과 poetry.lock 파일이 왜 필요한지 좀 더 자세히 설명해보겠다.
+프로젝트는 여러 사람이 동시에 진행하므로 같은 버전의 패키지를 사용해야 한다.
+pyproject.toml엔 패키지 버전 등이 담겨있지만 패키지간의 의존성은 전혀 설명하지 않는다.
+의존성을 적어둘 다른 파일로 poetry.lock를 만든 것이다.
+그러므로 깃허브에 배포할 때 pyproject.toml과 poetry.lock 파일을 같이 배포해야만 한다.
+만약 poetry.lock 파일을 빼고 배포하면, poetry는 pyproject.toml 파일을 기반으로 새로운 poetry.lock을 만든다.
+이때 pyproject.toml에 적힌 프로젝트의 의존성 패키지를 최신 버전으로 설치해서 의존성에 문제가 생긴다.
+
+앞으로 우리가 하는 작업은 poetry 내에서 실행되는 것이다.
+그러므로 명령어를 입력하기 전에 `poetry shell`을 입력해야 한다.
+그 후 `django-admin`을 입력하면 django-admin의 명령어가 나타난다.
+poetry를 종료시키려면 `exit`을 입력하면 된다.
+
+## start project
+
+`poetry shell`, `django-admin startproject config .`으로 현재 위치에 프로젝트를 시작한다.
+그러면 config 폴더가 생긴다.
+이제 gitignore 파일을 추가해줘야 하는데, vscode의 익스텐션으로 간단하게 해결할 수 있다.
+gitignore이라는 익스텐션을 검색해 설치한다.
+그 후 설정 > command palette > add gitignore > python으로 gitignore 파일을 만든다.
+
+## run server
+
+`python manage.py runserver`로 서버를 실행해보자.
+서버를 실행하면 서버의 url이 출력되고 db.sqlite3라는 파일이 만들어졌다.
+
+`python manage.py startapp `
+
+## MVC(Model View Controller)
+
+우리가 만드는 대부분의 애플리케이션은 데이터를 시각적으로 보여주는 일을 한다.
+오래전부터 사람들은 저장된 데이터를 사용자에게 보여주는 애플리케이션을 만들어왔고 그 과정에서 공통된 패턴을 발견한다.
+이를 MVC 패턴이라고 하며 MVC에 따르면 코드는 데이터를 담당하는 코드, 사용자에게 보이는 부분, 앞의 둘을 조작하는 코드 3가지로 나뉜다.
+이들은 각각 Model, View, Controller라고 불린다.
+
+- Model: 데이터 담당
+- View: 사용자에게 보이는 시각적 부분 담당
+- Controller: Model과 View 사이의 흐름을 담당
+
+왜 이렇게 3개로 나뉘게 되었는지 조금 생각해보자.
+데이터를 저장, 삭제, 수정하기 위한 부분인 Model과 사용자에게 보이는 View가 있어야 한다는 것은 쉽게 알 수 있다.
+그런데 애플리케이션이 동작하려면 Model에서 데이터를 읽어와 View로 보여줘야 한다.
+이렇게 데이터를 읽어와 보여주는 코드는 눈으로 보이는 부분이 아니니 View는 아니다.
+또한 이 코드가 저장된 데이터가 아니므로 Model이라고 할 수 없다.
+이 코드의 특징은 View와 Model 사이에 존재하며 사용자 명령을 받아 Model을 수정하거나, 반대로 Model의 정보를 읽어와 View에 보여준다는 것이다.
+그러므로 View와 Model을 조작한다는 의미에서 Controller라고 이름 붙인게 아닐까 한다.
+
+MVC를 검색해보면 View가 Controller에 의존적이어선 안 된다거나, View는 Model에 의존적일 수 있다는 설명을 보곤한다.
+의존적이라는 표현은 모호해서 이해하기 어려운데, 간단히 말해서 코드가 포함되어선 안 된다는 의미다.
+각각의 의존관계는 아래와 같다.
+
+- Model: View와 Controller에 의존하지 않는다.
+- View: Model에 의존적이고, Controller에는 의존하면 안 된다.
+- Controller: Model과 View에 의존적이다.
+
+위가 무슨 의미인지 아래 예를 보고 설명하겠다.
+
+```java
+// Model
+public class User {
+  private String name;
+  private String password;
+  private String location;
+
+  public User(String name, String password, String location) {
+    this.name = name;
+    this.password = password;
+    this.location = location;
+  }
+
+  ...
+}
+
+// View
+public class View {
+  public void showUser(User user) {
+    System.out.printIn(
+      "User name is " + user.name
+    )
+  }
+}
+
+// Controller
+public class Controller {
+  public static void main(String[] args) {
+    User user = new User("Alice", "abcde", "seoul");
+    View.showUser(user);
+  }
+}
+```
+
+위 예시를 보면 Model은 View나 Controller의 내용을 사용하지 않는다.
+Model은 순수하게 자기 자신에 관한 일만 다루고 있고, Model과 View의 코드를 포함하지 않는다.
+다음으로 View를 보면 Model에 있는 사용자 정보를 가져와서 출력해준다.
+View는 Model의 코드를 포함하고 있고, Controller의 코드는 없다.
+마지막으로 Controller는 Model과 View의 코드를 둘 다 사용하고 있다.
+이 관계를 그림으로 표현하면 아래처럼 된다.
+
+```
+    Model
+  ↙       ↘
+View  →   Controller
+```
+
+위 그림은 코드의 포함 관계만을 나타낸 것으로 흐름과는 관계 없다.
+Model이 View에서 사용되긴 하지만, 코드상 직접적으로 가져와서 사용하진 않는다.
+대신에 Controller에서 양쪽을 불러와서 일을 처리한다.
+MVC가 동작하는 순서는 아래처럼 표시할 수 있다.
+
+```
+╔═════════════╗            ╔════════════════ Web Server ═════════════╗
+║             ║            ║                                         ║
+║             ║            ║                          //============ 3 ==========\\
+║             ║            ║ +------------+           || +-------+   ║   +----+  ||
+║             ║            ║ |            | --- 2 --> || | Model | <---> | DB |  ||
+║             ║  --- 1 --> ║ |            | <-- 4 --- || +-------+   ║   +----+  ||
+║ Web Browser ║            ║ |            |           \\=============║===========//
+║             ║            ║ | Controller |                          ║
+║             ║  <-- 7 --- ║ |            |            +------+      ║
+║             ║            ║ |            | --- 5 -->  | View |      ║
+║             ║            ║ |            | <-- 6 ---  |      |      ║
+║             ║            ║ +------------+            +------+      ║
+║             ║            ║                                         ║
+╚═════════════╝            ╚═════════════════════════════════════════╝
+```
+
+1. 웹 브라우저에서 서버에 요청을 보내고, 서버는 요청에 맞는 컨트롤러를 선택한다.
+2. 컨트롤러는 모델을 호출한다.
+3. 모델은 객체를 생성하거나, DB에서 불러온다.
+4. 결과값을 컨트롤러에 돌려준다.
+5. 모델로부터 받은 값을 View에게 전달한다.
+6. View는 값을 바탕으로 출력 결과를 만들어서 컨트롤러에게 돌려준다.
+7. 서버는 웹 브라우저에게 요청값을 전달하고, 브라우저는 이를 화면에 표시한다.
+
+## MTV(Model Template View)
+
+django는 MVC 패턴 대신 MTV 패턴을 사용한다.
+둘은 큰 틀에서 동일한데, 차이점은 View를 Template라고 부르고 Controller를 View라고 부르는 것이다.
+사실 정확히 같은 것은 아니고 Controller의 역할을 django가 일정부분 부담해준다고 한다.
+하지만 솔직히 무슨 차이가 있는지 잘 모르겠다.
