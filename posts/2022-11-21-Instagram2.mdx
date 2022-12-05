@@ -83,26 +83,33 @@ poetry를 종료시키려면 `exit`을 입력하면 된다.
 
 `poetry shell`, `django-admin startproject config .`으로 현재 위치에 프로젝트를 시작한다.
 그러면 config 폴더가 생긴다.
+현재까지 폴더 내용은 아래처럼 되어야 한다.
 
 ```
 config/
-    manage.py
-    mysite/
-        __init__.py
-        settings.py
-        urls.py
-        asgi.py
-        wsgi.py
+    __init__.py
+    asgi.py
+    settings.py
+    urls.py
+    wsgi.py
+manage.py
+poetry.lock
+pyproject.toml
 ```
 
+각 파일이 어떤 경우에 사용되는지는 이후에 차차 배울 것이다.
 이제 gitignore 파일을 추가해줘야 하는데, vscode의 익스텐션으로 간단하게 해결할 수 있다.
 gitignore이라는 익스텐션을 검색해 설치한다.
 그 후 설정 > command palette > add gitignore > python으로 gitignore 파일을 만든다.
 
 ## run server
 
-`python manage.py runserver`로 서버를 실행해보자.
-서버를 실행하면 서버의 url이 출력되고 db.sqlite3라는 파일이 만들어졌다.
+앞서 프로젝틀를 시작하며 만든 파일 중에서 manage.py 파일이 있었다.
+manage.py는 django에서 필요한 온갖 기능을 적어둔 파일로, 우리는 대부분의 기능을 이 파일을 실행해서 구현한다.
+예를 들어 서버를 시작하거나, 애플리케이션을 만들거나, 변경 내용을 적용하는 등의 대부분의 기능이 이 파일에 만들어져 있다.
+다른 기능은 이후에 소개하기로 하고 일단은 서버를 실행하려면 `python manage.py runserver`를 입력한다.
+그러면 \_pycache\_라는 폴더와 db.sqlite3 파일이 생성된다.
+콘솔을 보면 서버를 "http://127.0.0.1:8000/"에 실행시키고 있다.
 
 ```
 Watching for file changes with StatReloader
@@ -112,13 +119,14 @@ System check identified no issues (0 silenced).
 
 You have 18 unapplied migration(s). Your project may not work properly until you apply the migrations for app(s): admin, auth, contenttypes, sessions.
 Run 'python manage.py migrate' to apply them.
-October 28, 2022 - 00:39:35
-Django version 4.1.2, using settings 'config.settings'
+December 05, 2022 - 06:25:21
+Django version 4.1.3, using settings 'config.settings'
 Starting development server at http://127.0.0.1:8000/
 Quit the server with CONTROL-C.
 ```
 
-에러 메세지가 출력되는데 이는 이후 migration에서 배워볼 것이다.
+메세지를 보면 18개의 마이그레이션이 적용되지 않았다는 에러가 보일 것이다.
+이는 이후에 배울 것이고 일단은 넘어간다.
 
 ## MVC(Model View Controller)
 
@@ -253,10 +261,21 @@ django는 Controller가 해야 할 일을 대신해준다.
 
 ## App 만들기
 
-`python manage.py startapp polls`
+인스타그램엔 사용자, 댓글, 포스트 등 다양한 정보가 필요하다.
+이때 이들을 한 파일에 만든다면 난잡해지므로, 주제별로 폴더를 만들게 된다.
+각 폴더는 데이터를 정의하고, 조작하고, 보이는 방법을 정하게 된다.
+예를 들어 사용자 폴더는 어떤 정보가 들어 있어야 하고, 사용자 정보를 어떻게 사용하며, 어떤 정보를 보여줄지 정한다.
+이처럼 django는 주제별로 폴더를 나누게 되는데 이를 *앱*이라고 한다.
+앱은 데이터 형태와 이를 조작하는 로직으로 구성되는데, 서로 다른 주제는 다른 앱에 작성되어야 한다.
+그러므로 사용자, 댓글, 포스트는 각기 다른 앱에 작성된다.
+처음에는 앱이 복잡해 보일 수도 있지만, 앱은 주제별로 폴더를 나눈 것에 불과하다.
+앞으로 우리는 앱에 어떻게 모델을 만들고, 이들을 조작하는지 배울 것이다.
+
+앱을 만들기 위해선 `python manage.py startapp users`로 테스트용 앱을 만든다.
+폴더를 보면 아래처럼 구성된다.
 
 ```
-polls/
+users/
     __init__.py
     admin.py
     apps.py
@@ -266,6 +285,155 @@ polls/
     tests.py
     views.py
 ```
+
+앞으로 앱에서 model, view, template을 어떻게 만들지 배울 것이다.
+자연스러운 순서는 모델부터 만드는 것인데, 문제는 모델부터 만들면 모델을 보여줄 페이지가 필요하단 것이다.
+그래서 모델을 만들기 전에 admin 페이지를 설명하고 시작하겠다.
+
+### Admin
+
+django는 기본적으로 관리자 페이지가 존재한다.
+`python manage.py runserver`로 서버를 실행시킨 다음 http://localhost:8000/admin/에 들어가면 로그인 창이 뜬다.
+아직 우리는 관리자 계정을 만들지 않았으므로 로그인 할 수 없다.
+admin 페이지에선 우리가 만든 모델을 볼 수 있다.
+
+#### superuser
+
+관리자 계정을 만들기 위해 `python manage.py createsuperuser`를 입력해야 한다.
+그런데 우리는 아직 마이그레이션을 적용하지 않아, 관리자 계정을 만들 수 없다.
+마이그레이션이 무엇인지는 뒤에 설명할 것인데, 일단은 `pyhton manage.py migrate`로 마이그레이션을 적용한다.
+그 후 username, email, password를 입력해 계정을 만든다.
+`python manage.py runserver`로 서버 실행한 후, /admin 페이지로 이동한다.
+그리고 관리자 계정으로 로그인하면 된다.
+django administration 페이지가 나오는데, 여기서 우리는 이후에 추가될 모델을 볼 수 있을 것이다.
+
+def **str**(self)로 admin 페이지에서 보일 이름을 바꿔줄 수 있다.
+
+list_display, list_filter, search_fields,
+list 대신에 tuple로 정의하는 경우가 많음
+
+### Model
+
+django에서 모델을 만들려면 django.db.models.Model을 상속받아서 만들어야 한다.
+각 모델은 models.py 안에 만들어주며 어떤 필드를 포함할지는 django.db.models 안에서 가져와서 사용한다.
+아래는 사용자 모델을 만든 것이다.
+
+```python
+# users/models.py
+from django.db import models
+
+# Create your models here.
+
+class User(models.Model):
+
+  """ User definition for models"""
+
+  name = models.CharField(max_length=30)
+  email = models.CharField(max_length=50)
+  description = models.TextField()
+  join_date = models.DateTimeField("date published")
+
+```
+
+User 모델은 models.Model을 상속 받아 만들어진다.
+이때 주석으로 어떤 내용인지 적어두는 것이 이후에 큰 도움이 된다.
+모델은 필드 이름(name, email, join_date 등)을 적어줘야 하는데, 이는 엑셀의 column처럼 사용된다.
+몇몇 필드는 인수를 반드시 필요로 하는데, 예를 들어 CharField는 max_length를 꼭 적어줘야 한다.
+그 외에 default 같은 선택적인 변수가 있는데, 필요한 경우 django의 문서를 참고하자.
+
+모델을 만들었으면 config/settings.py 파일에 모델을 등록해야 한다.
+파일을 열어보면 INSTALLED_APPS가 있는데, 이 위치에 모델을 등록한다.
+
+```python
+# config/settings.py
+
+INSTALLED_APPS = [
+    ...
+    'users.apps.UsersConfig',
+]
+```
+
+이제 admin 페이지에서 위 내용을 확인해보겠다.
+users/admin.py 파일로 이동해서 아래처럼 작성한다.
+
+```python
+# users/admin.py
+from django.contrib import admin
+from .models import User
+
+# Register your models here.
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+  pass
+```
+
+다시 admin 페이지에 들어가보면 Users라는 모델이 있다.
+하지만 클릭해보면 에러메세지가 나오는데 이는 아직 마이그레이션을 적용하지 않았기 때문이다.
+
+모델을 만들었으면 django에게 모델을 변경시킨 사실과, 이를 migration으로 저장하고 싶다는 것을 알려야 한다.
+우선은 config/settings.py의 INSTALLED_APPS에 앱을 등록해야 한다.
+우리는 이미 추가했으로 넘어간다.
+그 다음 `python manage.py makemigrations users`로 django에게 이를 알린다.
+그러면 아래처럼 메세지가 나온다.
+
+```
+Migrations for 'users':
+  users/migrations/0001_initial.py
+    - Create model User
+```
+
+django가 모델을 migration으로 저장하는데, 깃허브처럼 매번 버전을 migrations 폴더에 만들어둔다.
+migraion에 어떤 내용이 있는지 보려면 `python manage.py sqlmigrate polls 0001` 명령을 입력한다.
+
+```sql
+BEGIN;
+--
+-- Create model Question
+--
+CREATE TABLE "polls_question" (
+    "id" bigint NOT NULL PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY,
+    "question_text" varchar(200) NOT NULL,
+    "pub_date" timestamp with time zone NOT NULL
+);
+--
+-- Create model Choice
+--
+CREATE TABLE "polls_choice" (
+    "id" bigint NOT NULL PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY,
+    "choice_text" varchar(200) NOT NULL,
+    "votes" integer NOT NULL,
+    "question_id" bigint NOT NULL
+);
+ALTER TABLE "polls_choice"
+  ADD CONSTRAINT "polls_choice_question_id_c5b4b260_fk_polls_question_id"
+    FOREIGN KEY ("question_id")
+    REFERENCES "polls_question" ("id")
+    DEFERRABLE INITIALLY DEFERRED;
+CREATE INDEX "polls_choice_question_id_c5b4b260" ON "polls_choice" ("question_id");
+
+COMMIT;
+```
+
+마이그레이션을 바탕으로 데이터베이스에 모델 테이블을 만들려면 `python manage.py migrate`를 실행한다.
+
+```
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, sessions, users
+Running migrations:
+  Applying users.0001_initial... OK
+```
+
+migrate는 마이그레이션을 실행하며, 모델의 변경 사항과 데이테베이스의 스키마의 동기화가 이뤄진다.
+
+- models.py에서 모델을 변경
+- python manage.py makemigrations 로 마이그레이션 제작
+- python manage.py migrate 로 데이터베이스에 적용
+
+이제 admin 페이지에서 Users를 추가할 수 있고, 각각 어떤 내용이 있는지 볼 수 있다.
+
+ForeignKey 필드를 사용해 다른 모델을 가져올 수도 있다.
+이때 ForeignKey로 가져온 모델이 삭제될경우 어떻게 해야할지 on_delete에 적어줘야 한다.
 
 ### View
 
@@ -363,76 +531,6 @@ INSTALLED_APPS = [
 ]
 ```
 
-### Model
-
-django에서 모델을 만들려면 django.db.models.Model을 상속받아서 만들어야 한다.
-각 모델은 models.py 안에 만들어주며 어떤 필드를 포함할지는 django.db.models 안에서 가져와서 사용한다.
-
-```python
-# polls/models.py
-from django.db import models
-
-class Question(models.Model):
-    question_text = models.CharField(max_length=200)
-    pub_date = models.DateTimeField('date published')
-
-
-class Choice(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    choice_text = models.CharField(max_length=200)
-    votes = models.IntegerField(default=0)
-```
-
-필드 이름(question_text, pub_date 등)은 필드 이름으로 사용되며, 나중에 데이터베이스를 확인해보면 column으로 사용된다.
-몇몇 필드는 인수를 반드시 필요로 하는데, 예를 들어 CharField는 max_length를 꼭 적어줘야 한다.
-그 외에 default 같은 선택적인 변수가 있는데, 필요한 경우 django의 문서를 참고하자.
-
-ForeignKey 필드를 사용해 다른 모델을 가져올 수도 있다.
-이때 ForeignKey로 가져온 모델이 삭제될경우 어떻게 해야할지 on_delete에 적어줘야 한다.
-
-모델을 만들었으면 django에게 모델을 변경시킨 사실과, 이를 migration으로 저장하고 싶다는 것을 알려야 한다.
-우선은 config/settings.py의 INSTALLED_APPS에 앱을 등록해야 한다.
-그 다음 `python manage.py makemigrations polls`로 django에게 이를 알린다.
-
-django가 모델을 migration으로 저장하는데, 깃허브처럼 매번 버전을 migrations 폴더에 만들어둔다.
-migraion에 어떤 내용이 있는지 보려면 `python manage.py sqlmigrate polls 0001` 명령을 입력한다.
-
-```sql
-BEGIN;
---
--- Create model Question
---
-CREATE TABLE "polls_question" (
-    "id" bigint NOT NULL PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY,
-    "question_text" varchar(200) NOT NULL,
-    "pub_date" timestamp with time zone NOT NULL
-);
---
--- Create model Choice
---
-CREATE TABLE "polls_choice" (
-    "id" bigint NOT NULL PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY,
-    "choice_text" varchar(200) NOT NULL,
-    "votes" integer NOT NULL,
-    "question_id" bigint NOT NULL
-);
-ALTER TABLE "polls_choice"
-  ADD CONSTRAINT "polls_choice_question_id_c5b4b260_fk_polls_question_id"
-    FOREIGN KEY ("question_id")
-    REFERENCES "polls_question" ("id")
-    DEFERRABLE INITIALLY DEFERRED;
-CREATE INDEX "polls_choice_question_id_c5b4b260" ON "polls_choice" ("question_id");
-
-COMMIT;
-```
-
-마이그레이션을 바탕으로 데이터베이스에 모델 테이블을 만들려면 `python manage.py migrate`를 실행한다.
-migrate는 마이그레이션을 실행하며, 모델의 변경 사항과 데이테베이스의 스키마의 동기화가 이뤄진다.
-
-- models.py에서 모델을 변경
-- python manage.py makemigrations 로 마이그레이션 제작
-- python manage.py migrate 로 데이터베이스에 적용
-
 ### Template
 
 django를 DB관리와 API 용으로 사용하고, 프론트는 React로 만들 생각이라면 이 항목은 읽지 않아도 된다.
@@ -506,42 +604,20 @@ def index(request):
 그렇지만 대부분은 Template를 사용하지 않는다.
 대신 React로 프론트 작업을 한다음 API로 django와 연결하는 방법을 많이 사용한다.
 
-### Admin
-
-django는 기본적으로 관리자 페이지가 존재한다.
-
-#### superuser
-
-`python manage.py createsuperuser`
-
-username, email, password를 입력해 계정을 만든다.
-
-`python manage.py runserver`로 서버 실행
-
-http://localhost:8000/admin/ 에서 로그인
-
-admin 페이지에 poll app이 없음
-
-admin에서 수정하려면 polls/admin.py에 모델을 추가해줘야 함
-
-```python
-# polls/admin.py
-from django.contrib import admin
-
-from .models import Question
-
-admin.site.register(Question)
-```
-
 ## Django REST Framework
 
 Django REST Frmawork는 REST API를 쉽게 만들게 해준다.
 REST API가 무엇인지는 이미 다른 포스트에 정리했으므로 넘어가겠다.
+그런데 왜 REST API가 필요한 것일까?
+앞서 우리는 Template를 만들어서 웹 페이지를 보여주는 방식을 배웠다.
+간단한 페이지는 이렇게 HTML로 만들기 쉽지만, 좀 더 복잡한 페이지에선 React를 사용하길 원한다.
+그렇다면 django는 HTML 대신에 필요한 정보를 JSON으로 전달해줘야 하고, 이는 곧 API를 사용해야 한다는 의미다.
+프론트 앱에서 서버 API에 데이터를 요청하고 이를 바탕으로 페이지를 그리게 만들어줄 것이다.
 
 `poetry i djangorestframework`
 
 ```python
-# settings.py
+# config/settings.py
 INSTALLED_APPS = [
   ...
   'rest_framework',
