@@ -102,6 +102,12 @@ pyproject.toml
 gitignore이라는 익스텐션을 검색해 설치한다.
 그 후 설정 > command palette > add gitignore > python으로 gitignore 파일을 만든다.
 
+### Databases
+
+config/settings.py 파일엔 django 설정을 위한 변수가 저장되어 있다.
+django는 기본적으로 SQLite를 사용하도록 만들어져 있다.
+다른 데이터베이스를 사용하고 싶다면 [DATABASES](https://docs.djangoproject.com/ko/4.1/ref/databases/#third-party-notes) 페이지를 보고 바꾸면 된다.
+
 ## Settings for Convenience
 
 ### Pylance
@@ -340,6 +346,7 @@ class User(models.Model):
 User 모델은 models.Model을 상속 받아 만들어진다.
 이때 주석으로 어떤 내용인지 적어두는 것이 이후에 큰 도움이 된다.
 모델은 필드 이름(name, email, join_date 등)을 적어줘야 하는데, 이는 엑셀의 column처럼 사용된다.
+그리고 각 필드에 어떤 데이터 타입이 들어갈지 지정해줘야 한다.
 몇몇 필드는 인수를 반드시 필요로 하는데, 예를 들어 CharField는 max_length를 꼭 적어줘야 한다.
 그 외에 default 같은 선택적인 변수가 있는데, 필요한 경우 django의 문서를 참고하자.
 
@@ -442,7 +449,7 @@ Running migrations:
 - python manage.py makemigrations 로 마이그레이션 제작
 - python manage.py migrate 로 데이터베이스에 적용
 
-## Foreign key
+#### Foreign key
 
 User 모델은 하위 항목에 사진이나, houses 모델, 메세지 등 다양한 것을 포함해야 한다.
 이때 각 모델은 따로 만들어질텐데 어떻게 포함되게 만들까?
@@ -503,12 +510,9 @@ class House(models.Model):
 만약 프로젝트가 이미 많은 데이터를 가지고 있다면 어쩔 수 없이 default를 만들어서 바꿔줘야겠지만, 우리는 아직 별다른 작업을 하지 않았으므로 migration과 db 파일을 지우고 새로 시작하는 것이 빠르다.
 우선 각 migrations 폴더에 000#\_###.py 형태의 migraions를 삭제해준다.
 다음으로 db.sqlite3를 삭제하고 `python manage.py makemigraions`와 `pyhton manage.py migrate`를 차례로 입력해준다.
-`pyhton manage.py createsuperuser`로 새로운 슈퍼 계정을 만들어준다.
+`pyhton manage.py createsuperuser`로 새로운 관리자 계정을 만들어준다.
 
-ForeignKey 필드를 사용해 다른 모델을 가져올 수도 있다.
-이때 ForeignKey로 가져온 모델이 삭제될경우 어떻게 해야할지 on_delete에 적어줘야 한다.
-
-# Following relationships backward
+#### Following relationships backward
 
 지금까지 ForeignKey를 사용해서 모델을 연결하는 방법을 알아봤다.
 ForeignKey를 사용하면 room에 owner 필드를 추가할 수 있고, 이로 인해 각 room의 소유자를 알 수 있었다.
@@ -548,6 +552,10 @@ django는 \_set을 사용해서 연결된 모델을 찾아낸다.
 
 +로 바꾼 다음 `me.room_set.all()`을 입력해보면 동작하지 않는다.
 
+#### ManyToManyField
+
+#### OneToOneField
+
 #### Customizing Users
 
 앞서 우리는 Users를 만들어서 테스트를 했는데, 사실 장고는 기본적으로 사용자가 존재한다.
@@ -562,30 +570,6 @@ admin 페이지를 보면 우리가 만든 Users 모델 말고 다른 Users가 �
 그 이유는 프로젝트 중간에 방법을 바꾸기가 굉장히 어렵기 때문이다.
 가급적 프로젝트가 시작될 때 커스텀 사용자를 만드는 것이 좋다.
 그러므로 우리도 2번째 방법으로 사용자 커스터마이징을 해보겠다.
-
-django.contrib.auto.models import AbstractUser
-
-class User(AbstractUser):
-pass
-
-장고에게 우리가 커스텀 모델을 사용한다는 것을 알려줘야 함.
-
-settings.py > AUTH_USER_MODEL = 'users.User'
-
-데이터베이스에 이미 사용자가 있는데, 이를 새 사용자 모델로 교체했다.
-사용자가 있는 상태에서 이걸 바꿀 순 없다.
-sqlite 파일을 지우고, migrations의 000# 파일도 지운다.
-그 후 마이그레이션을 만들고 마이그레이트한다.
-
-from django.contrib.auth.admin import UserAdmin
-from .models import User
-
-@admin.register(User)
-class CustomUserAdmin(UserAdmin):
-pass
-
-DB를 초기화했으므로 새로 관리자계정을 만들고 시작해야 함.
-admin 페이지에서 새로운 Users가 생긴 것을 볼 수 있다.
 
 django는 기본적으로 많은 모델을 제공한다.
 예를 들어서 django.contrib.auth는 User 모델을 가지고 있다.
@@ -619,7 +603,16 @@ class User(AbstractUser):
 위 파일은 auth.models의 AbstractUser 모델을 가져와서 이를 우리의 User 모델로 사용한 것이다.
 cmd를 누른채로 AbstractUser를 클릭하면 파이썬 코드를 볼 수 있다.
 
-그리고 밑에 AUTH_USER_MODEL은 우리가 User로 어떤 모델을 사용할지 결정한다.
+장고에게 우리가 커스텀 모델을 사용한다는 것을 알려줘야 한다.
+settings.py 파일을 열고 밑에 `AUTH_USER_MODEL = 'users.User'`를 추가한다.
+
+```python
+#settings.py
+...
+AUTH_USER_MODEL = 'users.User'
+```
+
+AUTH_USER_MODEL은 우리가 User로 어떤 모델을 사용할지 결정한다.
 기본값은 auth.User이지만 우리는 직접 만든 User를 사용하기로 했으므로 users.User를 사용한다.
 서버를 실행할때 만약 기존에 사용자가 존재했다면 에러가 발생한다.
 이는 기존의 User과 지금의 User가 다른 모델을 사용하고 있기 때문에 발생한다.
@@ -788,10 +781,7 @@ class CustomUserAdmin(UserAdmin):
     list_display = ("username", "email", "name", "is_host")
 ```
 
-필드 사용 불가능
-editable=False
-
-## ImageField
+#### ImageField
 
 User에 아바타용 이미지를 추가하는 필드는 *ImageField*로 만들 수 있다.
 users/models.py에서 아래처럼 코드를 추가해준다.
@@ -799,7 +789,7 @@ users/models.py에서 아래처럼 코드를 추가해준다.
 ```python
 class User(AbstractUser):
   ...
-  avatar = models.ImageField()
+  avatar = models.ImageField(blank=True)
 ```
 
 그런데 서버를 실행시키면 에러가 발생할텐데 이는 Pillow가 없어서 발생하는 문제다.
@@ -808,7 +798,7 @@ class User(AbstractUser):
 만약 이미지를 넣지 않게 하고 싶으면 `models.ImageField(blank=True)`를 적어줘야 한다.
 blank=True와 null=True의 차이점은 blank는 말 그대로 빈 공간으로 놔둔다는 것이고, null은 null 값을 허용한다는 것이다.
 
-## Abstract base classes
+#### Abstract base classes
 
 모델을 만들다보면 공통적으로 가졌으면 하는 기능이 있을 것이다.
 예를 들어서 생성 시간과 수정 시간은 모든 모델에게 필요하다.
@@ -835,6 +825,9 @@ class CommonModel(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+      abstract = True
 ```
 
 위에서 DateTimeField 필드는 시간을 관리하는 필드다.
@@ -854,7 +847,7 @@ class Room(CommonModel):
   ...
 ```
 
-## ORM(Object Relational Mapping)
+### ORM(Object Relational Mapping)
 
 데이터베이스는 SQL을 사용해서 관리하는데, 데이터를 엑셀 같은 테이블 형태로 저장한다.
 그래서 각 데이터는 테이블의 한 칸을 차지하고 있고, ID와 Column을 가지고 그 값을 검색해낸다.
@@ -864,7 +857,7 @@ room의 owner 필드에 user가 들어가야 하는데, user가 테이블 형태
 SQL에서 이를 직접 지정하고 관리할 수 있지만 그 과정에서 시간도 많이 걸리고 객체처럼 직관적으로 관계를 만들기 어렵다.
 그래서 사람들은 ORM을 사용하는데, 간단히 말해 객체로 모델을 작성하면 SQL로 바꿔서 적용시켜주는 것이다.
 
-### [Queries](https://docs.djangoproject.com/en/4.1/topics/db/queries/#retrieving-objects)
+#### [Queries](https://docs.djangoproject.com/en/4.1/topics/db/queries/#retrieving-objects)
 
 지금까지는 admin 페이지를 이용해서 데이터를 생성, 삭제, 수정했다.
 django는 직접적으로 데이터를 수정할 수 있다.
@@ -1066,7 +1059,7 @@ list_diaply를 추가하면 column이 생긴 것을 볼 수 있고, list_filter�
 이때 tuple을 사용하면 주의할 사항이 하나 있다.
 tuple의 원소가 하나일때도 뒤에 ,를 꼭 붙여줘야 정상적으로 작동한다.
 
-## Choices
+#### Choices
 
 필드에 정해진 값에서 선택할 수 있게 만들려면 Choices를 사용한다.
 Choices는 tuple을 사용해서 만드는데 아래처럼 만든다.
@@ -1130,7 +1123,7 @@ class Student(models.Model):
 
 다음으로 admin.py에서 이를 적용해줘야 하는데, fields에 year_in_school을 추가해주면 된다.
 
-## Meta
+#### Meta
 
 모델을 만들다보면 필드가 아닌 항목도 만들게 된다.
 예를 들어서 admin 페이지에서 복수형을 수정하고 싶다거나, 테이블 이름을 바꾸고 싶거나, 순서를 변경하는 등의 일이 필요하다.
@@ -1150,7 +1143,7 @@ class Amenity(models.Model):
     verbose_name_plural = "Amenities"
 ```
 
-## \_\_str\_\_
+#### \_\_str\_\_
 
 모델에서 소유자를 ForeignKey를 사용하고 있으므로, admin 페이지에서 ID로 표시된다.
 그런데 ID로 표시되기 보다 소유자의 이름으로 표시되면 더 보기 좋을 것이다.
@@ -1165,7 +1158,7 @@ class Room(models.Model):
     return self.name
 ```
 
-## Admin Methods
+#### Admin Methods
 
 admin 페이지에서 모델의 총 수를 보여주는 것은 꽤나 유용하므로, 이번에는 모델의 수를 보여주는 필드를 만들겠다.
 amenities의 수를 표시하는 필드를 total_amenities라고 하겠다.
@@ -1201,16 +1194,18 @@ class Room(models.Model):
 
 ```
 
-### Search Fields
+#### Search Fields
 
 search_fields = (
 "name",
 "price",
 )
 
-### @admin.action
+#### @admin.action
 
 ### View
+
+view는 URL을 기반으로 코드를 실행해준다.
 
 ```python
 # polls/views.py
@@ -1220,11 +1215,22 @@ def index(request):
     return HttpResponse("This is polls")
 ```
 
+```python
+# config/urls.py
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+  path("polls/", views.index),
+  path("admin/", admin.site.urls),
+]
+```
+
 View를 호출하려면 연결된 URL이 필요한데, URLconf로 이어준다.
 urls.py라는 파일을 생성하고 아래처럼 작성한다.
 
 ```python
-# polls/urls/py
+# polls/urls.py
 from django.urls import path
 
 from . import views
@@ -1255,6 +1261,8 @@ django는 include를 만나면 URL에서 지금까지 일치하는 점은 잘라
 path는 route, view를 인수로 사용한다.
 route에는 URL 패턴을 적고, 일치하는 패턴을 찾으면 view에 전달한다.
 
+#### URL Arguments
+
 url에 변수를 포함하려면 <type:var>형태로 입력하면 된다.
 예를 들어서 id를 정수값으로 사용하고 싶으면 <int:id>로 적어서 아래처럼 사용한다.
 
@@ -1277,33 +1285,6 @@ urlpatterns = [
 # polls/views.py
 def detail(request, id):
     return HttpResponse("You're looking at question %s." % id)
-```
-
-### Databases
-
-config/settings.py 파일엔 django 설정을 위한 변수가 저장되어 있다.
-django는 기본적으로 SQLite를 사용하도록 만들어져 있다.
-다른 데이터베이스를 사용하고 싶다면 [DATABASES](https://docs.djangoproject.com/ko/4.1/ref/databases/#third-party-notes) 페이지를 보고 바꾸면 된다.
-
-INSTALLED_APPS에 활성화된 모든 애플리케이션이 적혀있다.
-처음에는 admin, auth, session 등의 기본적인 애플리케이션만 적혀있다.
-이 중에는 데이터베이스 테이블을 사용하는 경우가 있어서, 테이블을 만들어줘야 정상적으로 작동한다.
-`python manage.py migrate`
-migrate 명령은 INSTALLED_APPS에 적힌 앱들의 데이터베이스 테이블을 생성한다.
-
-앱을 INSTALLED_APPS에 추가하려면 아래처럼 적어준다.
-
-```python
-# config/settings.py
-INSTALLED_APPS = [
-    'polls.apps.PollsConfig',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-]
 ```
 
 ### Template
