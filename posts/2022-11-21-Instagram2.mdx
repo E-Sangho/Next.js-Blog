@@ -1370,7 +1370,7 @@ REST API가 무엇인지는 이미 다른 포스트에 정리했으므로 넘어
 그렇다면 django는 HTML 대신에 필요한 정보를 JSON으로 전달해줘야 하고, 이는 곧 API를 사용해야 한다는 의미다.
 프론트 앱에서 서버 API에 데이터를 요청하고 이를 바탕으로 페이지를 그리게 만들어줄 것이다.
 
-`poetry i djangorestframework`
+`poetry add djangorestframework`
 
 ```python
 # config/settings.py
@@ -1380,4 +1380,808 @@ INSTALLED_APPS = [
 ]
 ```
 
+### Without REST Framework
+
+REST framework를 사용하기 전에 기본적인 django로만 api를 만들어보자.
+물론 이는 충분히 가능한데, django가 기본적으로 JSON Response를 지원하기 때문이다.
+우선 categories/라는 URL로 들어왔을 경우 category 모델을 모두 보여주려고 한다.
+이를 위해 config/urls.py에 주소를 만들어준다.
+
+```python
+# config/urls.py
+...
+urlpatterns = [
+  ...
+  path("categories/", include("categories.urls")),
+]
+```
+
+그 후 urls.py에 views 파일 내의 categories를 응답으로 보내도록 만든다.
+
+```python
+# categories/urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+  path("", views.categories),
+]
+```
+
+이제 views 파일을 작성해야 하는데, django.http의 JsonResponse로 JSON 응답을 할 수 있다.
+ORM으로 Category 모델의 정보를 모두 불러와서 JSON 응답으로 전달하려면 아래처럼 하면 될 것이다.
+
+```python
+# categories/views.py
+from .models import Category
+from django.http import JsonResponse
+
+def categories(request):
+  all_categories = Category.objects.all()
+  return JsonResponse(
+    {
+      "ok": True,
+      'categories': all_categories,
+    }
+  )
+```
+
+그런데 서버를 실행하고 /categories에 접속하면 에러가 발생한다.
+에러를 읽어보면 "QuerySet is not JSON serializable"이라 나오는데 무슨 의미일까?
+앞서 우리는 ORM을 사용해 Category 모델을 불러와 all_categories로 저장했다.
+그러므로 all_categories는 QuerySet인데, 문제는 우리가 이를 JsonResponse로 보내려고 해서 발생한다.
+즉, QuerySet을 JSON으로 보내려고 했기 때문에 타입이 맞지 않아서 에러가 발생한 것이다.
+이를 해결하려면 QuerySet을 JSON으로 번역해주는 기능이 필요하다.
+
 ### serializer
+
+django는 django 모델을 다른 포맷으로 변경해주는 serializer를 기본적으로 내포하고 있다.
+우리가 할 일은 그저 serializer를 불러와서 어떤 데이터로 바꿔줄지 정하는 것이다.
+
+```python
+# views.py
+...
+from django.core import serializers
+
+def categories(request):
+  ...
+    return JsonResponse(
+    {
+      ...
+      'categories': serializers.serialize("json", all_categories),
+    }
+  )
+```
+
+이로써 QuerySet을 JSON으로 변경하는데 성공했다.
+그런데 매번 view에러 serializer를 일일이 사용해야 하는 번거로움이 있다.
+또한 QuerySet에서 특정 내용만 보여주고 싶으면 어떻게 해야 할까?
+예를 들어서 PK를 숨기고 싶다거나, updated_at을 보여주고 싶지 않은 경우가 있다.
+문제는 django의 serializer이 이런 기능이 없다는 것이다.
+serializer는 굉장히 기본적인 기능만 갖추고 있으므로, 저런 편의성 있는 기능이 없고, 우리가 직접 코드를 작성해야 한다.
+
+#### GET
+
+이 시점에서 REST Framework를 사용해보겠다.
+일단은 아래 내용을 그대로 적어보자.
+
+```python
+# views.py
+...
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+@api_view()
+def categories(request):
+  return Response(
+    {
+      "ok": True,
+    }
+  )
+```
+
+그 후에 서버를 실행시켜 /categories 페이지를 확인해보면, 웹 페이지가 보일 것이다.
+REST Framework는 @api_view를 사용했을때, 응답을 멋들어지게 보여주는 웹 페이지를 보여준다.
+요청, URL, HTTP 응답, 헤더 정보 등 다양한 내용이 보기 좋게 정렬되어 있다.
+물론 이는 개발자인 우리만 볼 수 있는 페이지로, 실제 사용자는 JSON 정보만을 받게 될 것이다.
+
+이제 QuerySet을 JSON으로 바꿀 serializer가 필요하다.
+serializers.py 파일을 만들고, serializers.Serializer 모델을 상속 받는다.
+그리고 그 안에 어떤 필드를 보여줄지 적어야 하는데, 필드명과 타입을 맞춰 적어야 한다.
+예를 들어 아래는 Category 모델에서 name과 kind만 보여줄 것이다.
+
+```python
+# serializers.py
+from rest_framework import serializers
+
+class CategorySerializer(serializers.Serializer):
+  name = serializers.CharField(required=True)
+  kind = seriszlieres.CharField()
+```
+
+```python
+# views.py
+...
+from .serializers import CategorySerializer
+
+@api_view()
+def categories(request):
+  all_categories = Category.objects.all()
+  serializer = CategorySerializer(all_categories, many=True) # many=True가 없으면 하나만 번역하므로 에러가 발생한다.
+  return Response(
+    {
+      "ok": True,
+      "categories": serializer.data,
+    }
+  )
+```
+
+추가로 타입을 변형하는 것도 가능한데, 예를 들어서 pk가 모델에서는 integer일지라도 출력되는 결과는 string으로 만들 수 있다.
+
+```python
+# serializers.py
+...
+class CategorySerializer(serializers.Serializer):
+  ...
+  pk = serializers.CharField() # or pk = serializers.IntegerField()
+```
+
+```python
+# urls.py
+urlpatterns = [
+  ...
+  path("<int:pk>", views.category),
+]
+```
+
+```python
+# views.py
+...
+@api_view()
+def category(request, pk):
+  category = Category.objects.get(pk=pk)
+  serializer =  CategorySerializer(category)
+  return Response(serializer.data)
+```
+
+#### POST
+
+지금까지는 GET 요청만을 받았는데, 이번에는 POST 요청을 받게 만들겠다.
+@api_view에 허락할 요청을 적어주기만 하면 된다.
+
+```python
+# views.py
+...
+@api_view(["GET", "POST"])
+def category(request, pk):
+  category = Category.objects.get(pk=pk)
+  serializer =  CategorySerializer(category)
+  return Response(serializer.data)
+```
+
+위와 같이 수정하고 페이지에 가보면 아래에 폼이 생겼을 것이다.
+아래 폼을 사용하면 POST 요청을 페이지에서 보낼 수 있게 된다.
+물론 우리는 POST 요청을 위한 내용을 작성하지 않았으므로 GET과 같은 결과가 나올 것이다.
+request의 method를 확인해서 요청에 따라 행동을 바꿔보자.
+
+```python
+# views.py
+@api_view(["GET", "POST"])
+def categories(request):
+  if request.method == "GET":
+    all_categories = Category.objects.all()
+    serializer = CategorySerializer(all_categories, many=True)
+    return Response(
+      {
+        "ok": True,
+        "categories": serializer.data,
+      }
+    )
+  elif request.method == "POST":
+    print(request.data)
+    return Response(
+      {
+        "created": True
+      }
+    )
+```
+
+페이지에서 폼으로 POST 요청을 보내면 데이터가 출력될 것이다.
+그렇지만 우리는 POST 요청시에 새로운 데이터를 만들어야 한다.
+이는 ORM의 create로 가능하고 아래처럼 하면 될 것이다.
+
+```python
+# views.py
+@api_view(["GET", "POST"])
+def categories(request):
+  ...
+  elif request.method == "POST":
+    Category.objects.create(
+      name=request.data["name"],
+      kind=request.data["kind"],
+    )
+    return Response(
+      {
+        "created": True
+      }
+    )
+```
+
+그런데 우리가 모델을 만들 때 작성했던 제약들을 검증해야 한다.
+예를 들어 name은 40글자 아래여야 하는데, 위처럼 만들면 모델의 제약과 달라서 문제가 발생할 것이다.
+물론 이는 name의 길이를 체크하고 이상이 있으면 응답으로 에러 메세지를 보내면 된다.
+그런데 필드가 20가지 항목이 있다면, 각각의 항목을 모두 체크해야 하므로 해야할 일이 굉장히 많아질 것이다.
+이처럼 1가지 모델을 작성하는데만도 너무 많은 노력이 들고 있다.
+
+여기서 밝혀야할 사실이 있는데 사실 serializer는 QuerySet을 JSON으로 번역해주는 도구가 아니다.
+serializer는 반대로 JSON에서 QuerySet으로 바꿀 수 있다.
+즉, serializer는 QuerySet과 JSON 사이의 양방향 변환을 가능하게 해준다.
+이로 인해 우리는 작성한 JSON을 모델로 쉽게 바꿀 수 있다.
+물론 그 전에 데이터가 모델에 맞는지 검증할 필요가 있다.
+검증은 그냥 serializers에 데이터를 건네주면 되는데, 이때 data 변수로 전달해야 한다.
+앞서 QuerySet => JSON 시에는 그냥 1번째 변수로 넘겨주면 됐지만, 반대의 경우는 data에 있는 내용을 사용하므로 주의하자.
+
+```python
+# views.py
+@api_view(["GET", "POST"])
+def categories(request):
+  ...
+  elif request.method == "POST":
+    serializer = CategorySerializer(data=request.data)
+    return Response(
+      {
+        "created": True
+      }
+    )
+```
+
+앞서 우리가 serializers.py에 작성한 내용을 보면, 각 필드에 어떤 제약이 있는지 적어줬다.
+serializer는 이에 따라 데이터를 검증해준다.
+물론 serializers.py 파일에 적혀있지 않으면 체크할 수 없으므로, 모델을 보고 제약 사항을 그대로 가져오는 것이 중요하다.
+serializer로 받아온 내용이 모델과 맞는지 아닌지는 is_valid로 알 수 있다.
+
+```python
+# views.py
+@api_view(["GET", "POST"])
+def categories(request):
+  ...
+  elif request.method == "POST":
+    serializer = CategorySerializer(data=request.data)
+    print(serializer.is_valid())
+    return Response(
+      {
+        "created": True
+      }
+    )
+```
+
+그런데 serializer는 필요한 모든 데이터를 받아올 것이라 예측하므로 정보가 부족하면 false를 반환한다.
+어떤 에러가 발생했는지는 errors로 볼 수 있다.
+
+```python
+# views.py
+@api_view(["GET", "POST"])
+def categories(request):
+  ...
+  elif request.method == "POST":
+    serializer = CategorySerializer(data=request.data)
+    print(serializer.is_valid())
+    print(serializer.errors)
+    return Response(
+      {
+        "created": True
+      }
+    )
+```
+
+그런데 pk나 created_at은 사용자로부터 입력받을 필요가 없는 내용임에도 에러를 발생시킨다.
+간단하게 read_only=True를 추가하면 해결된다.
+
+```python
+# serializers.py
+...
+class CategorySerializer(serializers.Serializer):
+  pk = serializers.CharField(read_only=True)
+  ...
+  created_at = serializers.DateTimeField(read_only=True)
+```
+
+시험하기 전에 코드를 아래처럼 고치자.
+
+```python
+# views.py
+@api_view(["GET", "POST"])
+def categories(request):
+  ...
+  elif request.method == "POST":
+    serializer = CategorySerializer(data=request.data)
+    if serializer.is_valid():
+      return Response({"created": True})
+    else:
+      return Response(serializer.errors)
+```
+
+이제 에러가 발생하면 에러가 반환되고 아니면 생성 응답이 나온다.
+
+serializer는 choice 같은 제약도 정할 수 있다.
+choices 항목에 적어주면 되는데, 아래처럼 하면 된다.
+
+```python
+# serializers.py
+from .models import Category
+
+class CategorySerializer(serializers.Serializer):
+  ...
+  kind = serialisers.ChoiceField(
+    ...
+    choices = Category.CategoryKindChoices.choices,
+  )
+  ...
+```
+
+serializer를 사용해서 데이터를 생성하려면 serializer.save를 사용해야 한다.
+serializer.save는 serializer가 정의된 곳에서 create 메서드를 찾아 실행시킨다.
+우선 views.py에 새로운 데이터를 생성하도록 serializer.save를 사용한다.
+
+```python
+# views.py
+@api_view(["GET", "POST"])
+def categories(request):
+  ...
+  elif request.method == "POST":
+    serializer = CategorySerializer(data=request.data)
+    if serializer.is_valid():
+      serializer.save()
+      return Response({"created": True})
+    else:
+      return Response(serializer.errors)
+```
+
+그 다음 serializers.py 파일로 이동해서 create 메서드를 만든다.
+create 메서드는 validated_data에 정보를 받아온다.
+이 값을 사용해 objects.create로 데이터를 생성하면 된다.
+
+```python
+# serializers.py
+class CategorySerializer(serializers.Serializer):
+  ...
+  def create(self, validated_data):
+    return Category.objects.create(
+      name=validated_data['name'],
+      kind=validated_data['kind'],
+    )
+```
+
+여기서 validated_data가 상당히 큰 경우 위처럼 일일이 적어주는건 낭비다.
+그러므로 \*\*를 사용해 객체를 펼쳐주면 간단하게 해결된다.
+
+```python
+# serializers.py
+class CategorySerializer(serializers.Serializer):
+  ...
+  def create(self, validated_data):
+    return Category.objects.create(**validated_data)
+```
+
+주의할 점은 create가 반드시 객체를 반환해야 한다는 점이다.
+그러므로 위처럼 생성된 데이터를 반환해야 한다.
+마지막으로 반환된 데이터를 다시 JSON 형태로 변환해야 하므로 CategorySerializer를 다시 사용해서 반환해준다.
+
+```python
+# views.py
+@api_view(["GET", "POST"])
+def categories(request):
+  ...
+  elif request.method == "POST":
+    serializer = CategorySerializer(data=request.data)
+    if serializer.is_valid():
+      new_category = serializer.save()
+      return Response(
+        CategorySerializer(new_category).data,
+      )
+    else:
+      return Response(serializer.errors)
+```
+
+#### Update
+
+업데이트를 하려면 PUT 명령을 사용해야 하므로, @api_view에 PUT을 추가하면 된다.
+업데이트 대상을 찾아야 하므로 pk로 카테고리를 검색해야 한다.
+그 후 요청에 따라서 코드를 나눠야 한다.
+편의를 위해 GET과 PUT만 구분해줬다.
+
+```python
+# views.py
+@api_view(["GET", "PUT"])
+def category(request, pk):
+  category = Category.objects.get(pk=pk)
+  if request.method == "GET":
+    serializer = CategorySerializer(category)
+    return Response(serializer.data)
+  elif request.method == "PUT":
+    # Write code here
+```
+
+그런데 요청한 pk에 맞는 카테고리가 없을 수도 있으므로 이를 try/except로 예외 처리해줘야 한다.
+이때 rest_framework의 NotFound를 사용했다.
+
+```python
+# views.py
+from rest_framework.exceptions import NotFound
+
+@api_view(["GET", "PUT"])
+def category(request, pk):
+    try:
+      category = Category.objects.get(pk=pk)
+    except Category.DoesNotExist:
+      raise NotFound
+  if request.method == "GET":
+    serializer = CategorySerializer(category)
+    return Response(serializer.data)
+  elif request.method == "PUT":
+    # Write code here
+```
+
+이제 남은 것은 업데이트시의 코드를 작성하는 것뿐이다.
+업데이트시에도 serializer를 사용한다.
+serializer는 건네주는 변수의 갯수에 따라 다르게 반응한다.
+첫번째 변수로 데이터를 넘겨주면 포맷 변경이라 인식하고, data로 넘겨주면 POST로 생각한다.
+그리고 둘 다 넘겨주면 PUT이라 생각한다.
+이때 첫 번째 변수는 원본 데이터고 data로 넘기는 정보는 업데이트 할 내용이 된다.
+
+```python
+# views.py
+@api_view(["GET", "PUT"])
+def category(request, pk):
+  ...
+  elif request.method == "PUT":
+    serializer = CategorySerializer(
+      category,
+      data=request.data,
+    )
+```
+
+그런데 위와 같이 넘겨주면 모든 필드의 내용을 data에 적어줘야 한다.
+만약 적혀진 내용만 변경하고 싶으면 serializer에 partial=True를 사용해야 한다.
+
+```python
+# views.py
+@api_view(["GET", "PUT"])
+def category(request, pk):
+  ...
+  elif request.method == "PUT":
+    serializer = CategorySerializer(
+      category,
+      data=request.data,
+      partial=True,   # 일부 내용만 변경시에 사용
+    )
+```
+
+아직 우리는 update에 관한 코드를 작성하지 않았지만, 위 코드가 정상적으로 동작했으면 serializer에 바뀐 내용이 들어 있을 것이다.
+REST Framework는 이 내용이 모델의 필드와 맞는지 검증해주는 is_valid가 포함되어 있으므로 이를 사용해 이상이 없는지 확인한다.
+그리고 다시 포맷을 변환하는데 serializer를 사용해서 반환하도록 한다.
+
+```python
+# views.py
+@api_view(["GET", "PUT"])
+def category(request, pk):
+  ...
+  elif request.method == "PUT":
+    serializer = CategorySerializer(
+      category,
+      data=request.data,
+      partial=True,
+    )
+
+    if serializer.is_valid():
+      updated_category = serializer.save()
+      return Response(CategorySerializer(updated_category).data)
+    else:
+      return Response(serializer.errors)
+```
+
+이제 serializer에서 update가 일어날 때 동작할 코드를 작성해보자.
+앞서 말했듯이 serializer에 원본 데이터와 바뀔 data가 동시에 주어지면 update 메서드가 실행된다.
+아래는 update의 형태다
+
+```python
+# serializers.py
+
+def update(self, instance, validated_data):
+  ...
+```
+
+여기서 instance에는 원본 데이터가 들어 있고, validated_data에는 변경될 내용이 들어 있다.
+문제는 validated_data에 필요한 내용이 없을 수도 있다.
+예를 들어 name이 없는데 무작정 업데이트 시켜선 안 될 것이다.
+그러므로 아래처럼 코드를 작성했다.
+
+```python
+# serializers.py
+
+def update(self, instance, validated_data):
+  if validated_data['name']:
+    instance.name = validated_data['name']
+  ...
+```
+
+그런데 위와 같이 필드를 계속 검사하는 일은 번거롭다.
+그러므로 .get을 사용할텐데, get은 찾는 내용이 없으면 2번째로 받는 패러미터를 반환한다.
+이를 사용해 위 코드를 아래처럼 고쳤다.
+
+```python
+# serializers.py
+
+def update(self, instance, validated_data):
+  instance.name = validated_data.get("name", instance.name)
+  instance.kind = validated_data.get("kind", instance.kind)
+```
+
+위와 같이 작성하면 validated_data에 항목이 없더라도 instance의 값을 꺼내와서 사용할 것이다.
+모든 내용이 변경되었으면 instance를 저장하고 반환한다.
+
+```python
+# serializers.py
+
+def update(self, instance, validated_data):
+  instance.name = validated_data.get("name", instance.name)
+  instance.kind = validated_data.get("kind", instance.kind)
+  instance.save()
+  return instance
+```
+
+#### DELETE
+
+삭제는 굉장히 간단하다.
+@api_view에 DELETE를 추가해준다.
+그리고 DELETE 명령일 결우 delete 메소드로 카테고리를 지운다.
+마지막으로 status code는 200, 202, 204 중에 하나를 선택하면 된다.
+status code는 rest_framework.status에서 가져오면 된다.
+
+```python
+# views.py
+from rest_framework.status import HTTP_204_NO_CONTENT
+
+@api_view(["GET", "PUT", "DELETE"])
+def category(request, pk):
+  ...
+  elif request.method == "DELETE":
+    category.delete()
+    return Response(status=HTTP_204_NO_CONTENT)
+```
+
+#### API View
+
+우리 코드를 보면 HTTP method를 체크한 후에 if-else로 계속 나눠주고 있다.
+이는 가독성도 좋지 않고 여러모로 불편하므로, REST Framework는 API View class로 이를 해결한다.
+rest_framework.views에서 APIView를 가져온다.
+그리고 이를 상속 받아서 클래스를 만드는데, HTTP method를 메소드로 만들면 해당 api를 만들 수 있다.
+예를 들어 get 메소드를 작성하면 GET 요청시에 실행될 API를 만들 수 있다.
+
+```python
+# views.py
+from rest_framework.views import APIView
+
+class Categories(APIView):
+  def get(self, request):
+    # Write GET API on here
+
+  def post(self, request):
+    # Write POST API on here
+```
+
+이렇게 API를 만들면 url에서도 이름을 바꿔줘야 한다.
+이때 클래스를 가져오므로 뒤에 .as_view()를 추가해야 한다.
+
+```python
+# urls.py
+urlpatterns = [
+  path("", views.Categories.as_view()),
+  ...
+]
+```
+
+기존 방법과의 차이점은 method를 체크하고 if-else로 나누는 대신에 메소드로 나눈다는 점, 그리고 클래스를 사용한다는 점이다.
+우선 Categories를 수정하면 아래처럼 된다.
+
+```python
+# views.py
+from rest_framework.views import APIView
+
+class Categories(APIView):
+  def get(self, request):
+    all_categories = Category.objects.all()
+      serializer = CategorySerializer(all_categories, many=True)
+      return Response(serializer.data)
+
+  def post(self, request):
+    serializer = CategorySerializer(data=request.data)
+    if serializer.is_valid():
+        new_category = serializer.save()
+        return Response(
+            CategorySerializer(new_category).data,
+        )
+    else:
+        return Response(serializer.errors)
+```
+
+마찬가지로 Category를 수정하고 싶은데, 이미 우리가 사용하는 모델과 이름이 겹쳐서 CategoryDetail로 변경했다.
+그런데 CategoryDetail는 위와 다른 문제가 생긴다.
+카테고리를 가져오는 공통된 코드가 존재한다는 점이다.
+일단 이를 무시하고 나머지를 완성하면 아래처럼 될 것이다.
+이때 url로 pk를 받아오므로 메소드에서도 pk를 사용한 것에 주의하자.
+
+```python
+# views.py
+class CategoryDetail(APIView):
+  """
+  try:
+    category = Category.objects.get(pk=pk)
+  except Category.DoesNotExist:
+    raise NotFound
+  """
+  def get(self, request, pk):
+    serializer = CategorySerializer(category)
+    return Response(serializer.data)
+
+  def put(self, request, pk):
+    serializer = CategorySerializer(
+      category,
+      data=request.data,
+      partial=True,
+    )
+
+    if serializer.is_valid():
+      updated_category = serializer.save()
+      return Response(CategorySerializer(updated_category).data)
+    else:
+      return Response(serializer.errors)
+
+  def delete(self, request, pk):
+    category.delete()
+    return Response(status=HTTP_204_NO_CONTENT)
+```
+
+문제는 주석으로 처리한 부분이다.
+위 코드는 get, put, delete 모든 메소드에서 공통적으로 사용되어야 하는 부분이다.
+그렇지만 클래스로 만들었기 때문에 단순히 위에 코드를 적는 것만으론 동작하지 않는다.
+처음 떠올릴 수 있는 방법은 모든 메소드 앞에 복사해주는 것이지만, 코드를 수정할때마다 번거로울 것이다.
+제일 쉬운 해결책은 새로운 메소드를 만들어서 이를 실행하는 것이다.
+이때 관습적으로 이름은 get_object를 사용한다.
+get_object 메소드는 pk로 검색을 하고 그 값을 반환하도록 만든다.
+그리고 category를 self.get_object(pk)로 대체하면 된다.
+
+```python
+# views.py
+class CategoryDetail(APIView):
+    def get_object(self, pk):
+        try:
+            return Category.objects.get(pk=pk)
+        except Category.DoesNotExist:
+            raise NotFound
+
+    def get(self, request, pk):
+        serializer = CategorySerializer(self.get_object(pk))  # category -> self.get_object(pk)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        serializer = CategorySerializer(
+            self.get_object(pk),  # category -> self.get_object(pk)
+            data=request.data,
+            partial=True,
+        )
+        if serializer.is_valid():
+            updated_category = serializer.save()
+            return Response(CategorySerializer(updated_category).data)
+        else:
+            return Response(serializer.errors)
+
+    def delete(self, request, pk):
+        self.get_object(pk).delete()  # category -> self.get_object(pk)
+        return Response(status=HTTP_204_NO_CONTENT)
+```
+
+#### ModelSerializer
+
+지금까지 serializer를 만들기 위해 꽤 많은 노력을 해왔다.
+그런데 작성하는 내용을 보면 모델과 굉장히 많은 내용이 겹친다.
+필드를 지정하고, 어떤 데이터 타입이 들어갈지, 제한 사항이 무엇인지 등은 모두 모델과 동일하게 만들어야 한다.
+REST Framework는 이 때문에 모델만 가지고 serializer를 만들 수 있도록 했다.
+serializer.py 파일로 이동해서 아래처럼 작성한다.
+
+```python
+# serializer.py
+class CategorySerializer(serialisers.ModelSerializer):  # Serializer -> ModelSerializer
+  class Meta:
+    model = Category
+```
+
+여기다가 어떤 필드가 포함될지 지정해줘야 하는데, 방법은 2가지가 있다.
+첫 번째는 포함될 필드를 지정하는 방법으로 fields를 사용한다.
+아래처럼 사용하면 name과 kind 필드만 노출되고, pk와 created_at은 숨겨질 것이다.
+
+```python
+# serializer.py
+class CategorySerializer(serialisers.ModelSerializer):  # Serializer -> ModelSerializer
+  class Meta:
+    model = Category
+    fields = ("name", "kind")
+```
+
+만약 모든 내용이 노출되길 원하면 "\_\_all\_\_"을 사용한다.
+
+```python
+# serializer.py
+class CategorySerializer(serialisers.ModelSerializer):  # Serializer -> ModelSerializer
+  class Meta:
+    model = Category
+    fields = "__all__"
+```
+
+두 번째 방법은 제외될 내용을 지정하는 것인데, exclude로 지정한다.
+
+```python
+# serializer.py
+class CategorySerializer(serialisers.ModelSerializer):  # Serializer -> ModelSerializer
+  class Meta:
+    model = Category
+    exclude = ("pk", "created_at")
+```
+
+위처럼 작성하면 serializer은 완성된다.
+지금까지 만들었던 create, update, 필드 지정등은 사실 필요 없는 일이었다.
+그럼에도 불구하고 소개한 이유는 바로 ModelSerializer로 해결하면 그 사이의 작동 원리를 이해할 수 없기 때문이다.
+왜 serializer에 매개변수를 넘겨줘야 하는지 직접해보지 않으면 이해할 수 없다.
+다른 이유는 간혹 serializer를 커스텀으로 만들 필요가 있기 때문이다.
+다만 대부분의 프로젝트는 ModelSerializer를 사용하는 것만으로 충분할 것이다.
+
+#### ModelViewSet
+
+views.py 파일에서 우리는 HTTP method에 따라 데이터를 처리했었다.
+그런데 위와 같은 일은 대부분의 데이터에서 동일하게 일어나는 일이다.
+REST Framework는 이 때문에 커스텀 클래스를 만들어뒀는데, 이를 사용하면 지금까지 한 일을 간단하게 처리할 수 있다.
+우선 views.py 파일로 이동한 다음 rest_framework.viewsets에서 ModelViewSet을 가져온다.
+클래스에는 serializer와 대상을 지정해줘야 하는데, 각각 우리가 작성한 serializer와 모델을 적어주면 된다.
+
+```python
+# views.py
+from rest_framework.viewsets import ModelViewSet
+
+class CategoryViewSet(ModelViewSet):
+  serializer_class = CategorySerializer
+  queryset = Category.objects.all()
+```
+
+이제 GET, POST 등의 메소드는 모두 urls.py 파일에 작성하면 된다.
+해야할 것은 각 URL에서 method에 따라 어떤 일을 할지다.
+list는 모든 항목을 보여주고, create는 항목을 생성하며, retrieve나 update 등은 pk에 맞는 단일 항목을 찾아 수정해준다.
+
+```python
+# views.py
+urlpatterns = [
+    path(
+        "",
+        views.CategoryViewSet.as_view(
+            {
+                "get": "list",
+                "post": "create",
+            }
+        ),
+    ),
+    path(
+        "<int:pk>",
+        views.CategoryViewSet.as_view(
+            {
+                "get": "retrieve",
+                "put": "partial_update",
+                "delete": "destroy",
+            }
+        ),
+    ),
+]
+```
+
+이때 주의할 것은 단일 항목을 찾을 때, 이름을 pk로 해줘야 한다는 점이다.
+retrieve 등은 코드 내에서 pk를 받아서 사용한다.
+그러므로 url의 <int:pk>가 <int:category_pk>처럼 바뀌면 제대로 동작하지 않는다.
+사용할 수 있는 리스트를 보려면 [routers](https://www.django-rest-framework.org/api-guide/routers/)에서 API Guide 항목을 읽어보자.
